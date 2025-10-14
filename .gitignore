@@ -43,3 +43,18 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment variables (IMPORTANT: Never commit credentials!)
+lib/core/config/env.dart
+
+# Firebase configuration files
+google-services.json
+GoogleService-Info.plist
+
+# Generated files
+*.g.dart
+*.freezed.dart
+
+# Flutter plugins
+.flutter-plugins
+.flutter-plugins-dependencies
