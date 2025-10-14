@@ -1,1 +1,1 @@
-# Shoply - EinkaufsApp
+# 🛒 Shoply - EinkaufsApp 🛒
