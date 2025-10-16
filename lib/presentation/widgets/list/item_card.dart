@@ -8,7 +8,7 @@ import 'package:shoply/data/models/shopping_item_model.dart';
 class ItemCard extends StatelessWidget {
   final ShoppingItemModel item;
   final VoidCallback? onTap;
-  final ValueChanged<bool>? onCheckedChanged;
+  final ValueChanged<bool?>? onCheckedChanged;
   final VoidCallback? onDelete;
   final bool showAddedBy;
 

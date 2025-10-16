@@ -45,5 +45,14 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Camera Permission -->
+	<key>NSCameraUsageDescription</key>
+	<string>We need camera access to scan barcodes</string>
+	<!-- Photo Library Permission -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to save images</string>
+	<!-- Biometric Authentication -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>We use Face ID for secure authentication</string>
 </dict>
 </plist>

@@ -74,7 +74,7 @@ class SupabaseService {
   }
 
   // Database methods
-  PostgrestFilterBuilder from(String table) => client.from(table);
+  PostgrestQueryBuilder from(String table) => client.from(table);
 
   // Storage methods
   SupabaseStorageClient get storage => client.storage;

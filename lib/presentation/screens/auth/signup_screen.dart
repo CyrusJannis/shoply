@@ -6,40 +6,59 @@ import 'package:shoply/core/constants/app_text_styles.dart';
 import 'package:shoply/core/utils/validators.dart';
 import 'package:shoply/data/services/supabase_service.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _signIn() async {
+  Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Passwords do not match'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
-      await SupabaseService.instance.signInWithEmail(
+      await SupabaseService.instance.signUpWithEmail(
         _emailController.text.trim(),
         _passwordController.text,
       );
 
       if (mounted) {
-        context.go('/home');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created! Please check your email to verify.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        context.go('/login');
       }
     } catch (e) {
       if (mounted) {
@@ -57,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _signInWithGoogle() async {
+  Future<void> _signUpWithGoogle() async {
     setState(() => _isLoading = true);
     try {
       await SupabaseService.instance.signInWithGoogle();
@@ -102,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: AppDimensions.spacingMedium),
                   
                   Text(
-                    'Shoply',
+                    'Create Account',
                     style: AppTextStyles.h1.copyWith(
                       color: AppColors.lightAccent,
                     ),
@@ -112,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: AppDimensions.spacingSmall),
                   
                   Text(
-                    'Your smart shopping companion',
+                    'Sign up to get started',
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: AppColors.lightTextSecondary,
                     ),
@@ -163,16 +182,48 @@ class _LoginScreenState extends State<LoginScreen> {
                   
                   const SizedBox(height: AppDimensions.spacingMedium),
                   
-                  // Sign In Button
+                  // Confirm Password Field
+                  TextFormField(
+                    controller: _confirmPasswordController,
+                    obscureText: _obscureConfirmPassword,
+                    decoration: InputDecoration(
+                      labelText: 'Confirm Password',
+                      hintText: 'Re-enter your password',
+                      prefixIcon: const Icon(Icons.lock_outlined),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          });
+                        },
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please confirm your password';
+                      }
+                      return null;
+                    },
+                    enabled: !_isLoading,
+                  ),
+                  
+                  const SizedBox(height: AppDimensions.spacingMedium),
+                  
+                  // Sign Up Button
                   ElevatedButton(
-                    onPressed: _isLoading ? null : _signIn,
+                    onPressed: _isLoading ? null : _signUp,
                     child: _isLoading
                         ? const SizedBox(
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Sign In'),
+                        : const Text('Sign Up'),
                   ),
                   
                   const SizedBox(height: AppDimensions.spacingMedium),
@@ -198,28 +249,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   
                   const SizedBox(height: AppDimensions.spacingMedium),
                   
-                  // Google Sign In Button
+                  // Google Sign Up Button
                   OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _signInWithGoogle,
+                    onPressed: _isLoading ? null : _signUpWithGoogle,
                     icon: const Icon(Icons.g_mobiledata, size: 30),
                     label: const Text('Continue with Google'),
                   ),
                   
                   const SizedBox(height: AppDimensions.spacingLarge),
                   
-                  // Sign Up Link
+                  // Sign In Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Don't have an account? ",
+                        'Already have an account? ',
                         style: AppTextStyles.bodyMedium,
                       ),
                       TextButton(
                         onPressed: _isLoading ? null : () {
-                          context.go('/signup');
+                          context.go('/login');
                         },
-                        child: const Text('Sign Up'),
+                        child: const Text('Sign In'),
                       ),
                     ],
                   ),
