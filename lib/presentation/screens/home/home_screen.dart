@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
+import 'package:shoply/core/localization/localization_helper.dart';
 import 'package:shoply/data/services/supabase_service.dart';
+import 'package:shoply/presentation/screens/history/shopping_history_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -14,7 +16,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Hello, $displayName',
+          '${context.tr('hello')}, $displayName',
           style: AppTextStyles.h2,
         ),
         actions: [
@@ -37,12 +39,13 @@ class HomeScreen extends StatelessWidget {
             // Shopping History Widget
             _buildWidgetCard(
               context,
-              title: 'Recent Shopping Trips',
+              title: context.tr('shopping_history'),
               icon: Icons.history,
-              child: const Text('No recent shopping trips'),
+              child: Text(context.tr('view_completed_shopping')),
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('History feature coming soon')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ShoppingHistoryScreen()),
                 );
               },
             ),
@@ -52,9 +55,9 @@ class HomeScreen extends StatelessWidget {
             // Promotional Flyers Widget
             _buildWidgetCard(
               context,
-              title: 'Current Offers',
+              title: context.tr('current_offers'),
               icon: Icons.local_offer,
-              child: const Text('No active offers'),
+              child: Text(context.tr('no_active_offers')),
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Flyers feature coming soon')),
@@ -65,7 +68,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: AppDimensions.spacingLarge),
             
             // Quick Actions
-            Text('Quick Actions', style: AppTextStyles.h2),
+            Text(context.tr('quick_actions'), style: AppTextStyles.h2),
             const SizedBox(height: AppDimensions.spacingMedium),
             
             Row(
@@ -79,7 +82,7 @@ class HomeScreen extends StatelessWidget {
                       );
                     },
                     icon: const Icon(Icons.add),
-                    label: const Text('New List'),
+                    label: Text(context.tr('create_new_list')),
                   ),
                 ),
                 const SizedBox(width: AppDimensions.spacingMedium),
@@ -92,7 +95,7 @@ class HomeScreen extends StatelessWidget {
                       );
                     },
                     icon: const Icon(Icons.qr_code_scanner),
-                    label: const Text('Scan'),
+                    label: Text(context.tr('scan_barcode')),
                   ),
                 ),
               ],

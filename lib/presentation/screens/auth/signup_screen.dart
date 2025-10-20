@@ -5,6 +5,7 @@ import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
 import 'package:shoply/core/utils/validators.dart';
 import 'package:shoply/data/services/supabase_service.dart';
+import 'package:shoply/data/services/native_oauth_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -77,10 +78,41 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _signUpWithGoogle() async {
+    try {
+      print('SignUp Screen: Getting Google OAuth URL...');
+      final authUrl = await SupabaseService.instance.getGoogleAuthUrl();
+      
+      if (!mounted) return;
+      
+      // Show native OAuth window
+      await NativeOAuthService.showOAuthWindow(
+        authUrl: authUrl,
+        redirectScheme: 'shoply://',
+        onRedirect: (url) async {
+          print('SignUp Screen: Got redirect: $url');
+          await SupabaseService.instance.handleOAuthCallback(url);
+        },
+      );
+    } catch (e) {
+      print('SignUp Screen: Google Sign-In error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _signUpWithApple() async {
     setState(() => _isLoading = true);
     try {
-      await SupabaseService.instance.signInWithGoogle();
-      // OAuth redirects will be handled by Supabase
+      await SupabaseService.instance.signInWithApple();
+      if (mounted) {
+        context.go('/home');
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -113,10 +145,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo or App Name
-                  const Icon(
-                    Icons.shopping_bag,
-                    size: 80,
-                    color: AppColors.lightAccent,
+                  Image.asset(
+                    'assets/images/appicon_trans.png',
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.shopping_bag,
+                        size: 80,
+                        color: AppColors.lightAccent,
+                      );
+                    },
                   ),
                   const SizedBox(height: AppDimensions.spacingMedium),
                   
@@ -252,8 +292,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   // Google Sign Up Button
                   OutlinedButton.icon(
                     onPressed: _isLoading ? null : _signUpWithGoogle,
-                    icon: const Icon(Icons.g_mobiledata, size: 30),
+                    icon: Image.asset(
+                      'assets/images/google_logo.png',
+                      height: 24,
+                      width: 24,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.g_mobiledata, size: 30);
+                      },
+                    ),
                     label: const Text('Continue with Google'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: AppDimensions.spacingSmall),
+                  
+                  // Apple Sign Up Button
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _signUpWithApple,
+                    icon: const Icon(Icons.apple, size: 24),
+                    label: const Text('Continue with Apple'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                   
                   const SizedBox(height: AppDimensions.spacingLarge),

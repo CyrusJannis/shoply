@@ -1,8 +1,11 @@
+import 'package:shoply/core/constants/app_config.dart';
 import 'package:shoply/data/models/shopping_list_model.dart';
 import 'package:shoply/data/services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ListRepository {
   final SupabaseService _supabase;
+  RealtimeChannel? _itemsChannel;
 
   ListRepository({SupabaseService? supabase})
       : _supabase = supabase ?? SupabaseService.instance;
@@ -12,12 +15,49 @@ class ListRepository {
     final userId = _supabase.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
 
-    final response = await _supabase.from('shopping_lists').select('''
+    print('DEBUG: Current user ID: $userId');
+
+    // First, get list IDs where user is a member
+    final memberResponse = await _supabase
+        .from('list_members')
+        .select('list_id')
+        .eq('user_id', userId);
+    
+    final memberListIds = (memberResponse as List)
+        .map((m) => m['list_id'] as String)
+        .toSet();
+    
+    print('DEBUG: User is member of ${memberListIds.length} lists');
+
+    // Get all lists where user is owner
+    final ownedLists = await _supabase.from('shopping_lists').select('''
       *,
       items:shopping_items(count)
-    ''').or('owner_id.eq.$userId,id.in.(select list_id from list_members where user_id=$userId)');
+    ''').eq('owner_id', userId);
 
-    return (response as List)
+    // Get all lists where user is a member (but not owner)
+    List sharedLists = [];
+    if (memberListIds.isNotEmpty) {
+      sharedLists = await _supabase.from('shopping_lists').select('''
+        *,
+        items:shopping_items(count)
+      ''').inFilter('id', memberListIds.toList());
+    }
+
+    // Combine both lists and remove duplicates
+    final allListsMap = <String, dynamic>{};
+    for (var list in [...(ownedLists as List), ...sharedLists]) {
+      allListsMap[list['id']] = list;
+    }
+
+    final allLists = allListsMap.values.toList();
+    
+    print('DEBUG: Found ${allLists.length} lists total');
+    for (var list in allLists) {
+      print('DEBUG: List "${list['name']}" - owner_id: ${list['owner_id']}');
+    }
+
+    return allLists
         .map((json) => ShoppingListModel.fromJson(json))
         .toList();
   }
@@ -76,15 +116,36 @@ class ListRepository {
 
   /// Generate and set share code for a list
   Future<String> generateShareCode(String listId) async {
+    print('DEBUG: Generating share code for list: $listId');
+    
     // Generate random 6-digit code
     final code = _generateRandomCode();
+    print('DEBUG: Generated code: $code');
 
-    await _supabase.from('shopping_lists').update({
-      'share_code': code,
-      'is_shared': true,
-    }).eq('id', listId);
+    // Generate share link
+    final shareLink = AppConfig.generateShareLink(code);
+    print('DEBUG: Generated share link: $shareLink');
+
+    try {
+      await _supabase.from('shopping_lists').update({
+        'share_code': code,
+        'share_link': shareLink,
+        'is_shared': true,
+      }).eq('id', listId);
+      
+      print('DEBUG: Share code and link saved successfully');
+    } catch (e) {
+      print('DEBUG: Error saving share code: $e');
+      rethrow;
+    }
 
     return code;
+  }
+
+  /// Get share link for a list
+  Future<String?> getShareLink(String listId) async {
+    final list = await getListById(listId);
+    return list?.shareLink;
   }
 
   /// Join a list using share code
@@ -111,6 +172,18 @@ class ListRepository {
     return ShoppingListModel.fromJson(listResponse);
   }
 
+  /// Join a list using share link
+  Future<ShoppingListModel?> joinListWithLink(String shareLink) async {
+    // Extract share code from link
+    final shareCode = AppConfig.extractShareCodeFromLink(shareLink);
+    if (shareCode == null) {
+      throw Exception('Invalid share link');
+    }
+
+    // Use existing joinListWithCode method
+    return joinListWithCode(shareCode);
+  }
+
   /// Get list members
   Future<List<Map<String, dynamic>>> getListMembers(String listId) async {
     final response = await _supabase
@@ -134,7 +207,34 @@ class ListRepository {
   }
 
   String _generateRandomCode() {
-    final random = DateTime.now().millisecondsSinceEpoch % 1000000;
-    return random.toString().padLeft(6, '0');
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = DateTime.now().millisecondsSinceEpoch;
+    var code = '';
+    for (var i = 0; i < 6; i++) {
+      code += chars[(random + i) % chars.length];
+    }
+    return code;
+  }
+
+  /// Subscribe to shopping items changes for realtime updates
+  void subscribeToItemChanges(Function() onUpdate) {
+    _itemsChannel = _supabase.client
+        .channel('shopping_items_changes')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'shopping_items',
+          callback: (payload) {
+            print('DEBUG: Realtime update received for shopping_items');
+            onUpdate();
+          },
+        )
+        .subscribe();
+  }
+
+  /// Unsubscribe from shopping items changes
+  void unsubscribeFromItemChanges() {
+    _itemsChannel?.unsubscribe();
+    _itemsChannel = null;
   }
 }

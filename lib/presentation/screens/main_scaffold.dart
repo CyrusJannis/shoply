@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
+import 'package:shoply/core/localization/localization_helper.dart';
 
 class MainScaffold extends StatelessWidget {
   final Widget child;
@@ -44,26 +45,26 @@ class MainScaffold extends StatelessWidget {
         selectedFontSize: 12,
         unselectedFontSize: 12,
         iconSize: AppDimensions.iconSizeSmall,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
+            icon: const Icon(Icons.home_outlined),
+            activeIcon: const Icon(Icons.home),
+            label: context.tr('home'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt_outlined),
-            activeIcon: Icon(Icons.list_alt),
-            label: 'Lists',
+            icon: const Icon(Icons.list_alt_outlined),
+            activeIcon: const Icon(Icons.list_alt),
+            label: context.tr('lists'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_menu_outlined),
-            activeIcon: Icon(Icons.restaurant_menu),
-            label: 'Recipes',
+            icon: const Icon(Icons.restaurant_menu_outlined),
+            activeIcon: const Icon(Icons.restaurant_menu),
+            label: context.tr('recipes'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline),
+            activeIcon: const Icon(Icons.person),
+            label: context.tr('profile'),
           ),
         ],
       ),

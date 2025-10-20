@@ -25,6 +25,14 @@ class ListsNotifier extends StateNotifier<AsyncValue<List<ShoppingListModel>>> {
 
   ListsNotifier(this._repository) : super(const AsyncValue.loading()) {
     loadLists();
+    _setupRealtimeSubscription();
+  }
+
+  void _setupRealtimeSubscription() {
+    // Subscribe to shopping_items changes to refresh lists when items change
+    _repository.subscribeToItemChanges(() {
+      loadLists();
+    });
   }
 
   Future<void> loadLists() async {
@@ -35,6 +43,12 @@ class ListsNotifier extends StateNotifier<AsyncValue<List<ShoppingListModel>>> {
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
     }
+  }
+  
+  @override
+  void dispose() {
+    _repository.unsubscribeFromItemChanges();
+    super.dispose();
   }
 
   Future<void> createList(String name) async {
@@ -79,6 +93,24 @@ class ListsNotifier extends StateNotifier<AsyncValue<List<ShoppingListModel>>> {
       final list = await _repository.joinListWithCode(shareCode);
       await loadLists();
       return list;
+    } catch (error) {
+      rethrow;
+    }
+  }
+
+  Future<ShoppingListModel?> joinListWithLink(String shareLink) async {
+    try {
+      final list = await _repository.joinListWithLink(shareLink);
+      await loadLists();
+      return list;
+    } catch (error) {
+      rethrow;
+    }
+  }
+
+  Future<String?> getShareLink(String listId) async {
+    try {
+      return await _repository.getShareLink(listId);
     } catch (error) {
       rethrow;
     }

@@ -30,6 +30,15 @@ class ShoppingListModel extends Equatable {
   });
 
   factory ShoppingListModel.fromJson(Map<String, dynamic> json) {
+    // Extract item count from the items array if present
+    int? itemCount = json['item_count'] as int?;
+    if (itemCount == null && json['items'] != null) {
+      final items = json['items'] as List?;
+      if (items != null && items.isNotEmpty) {
+        itemCount = items[0]['count'] as int?;
+      }
+    }
+
     return ShoppingListModel(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -41,7 +50,7 @@ class ShoppingListModel extends Equatable {
       sortMode: json['sort_mode'] as String? ?? 'category',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
-      itemCount: json['item_count'] as int?,
+      itemCount: itemCount,
       uncheckedCount: json['unchecked_count'] as int?,
     );
   }

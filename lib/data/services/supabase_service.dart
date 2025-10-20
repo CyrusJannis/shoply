@@ -48,14 +48,47 @@ class SupabaseService {
     );
   }
 
-  // Sign in with Google
-  Future<bool> signInWithGoogle() async {
-    return await client.auth.signInWithOAuth(OAuthProvider.google);
+  // Get Google OAuth URL for WebView
+  Future<String> getGoogleOAuthUrl() async {
+    final response = await client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: 'shoply://auth-callback',
+      authScreenLaunchMode: LaunchMode.platformDefault,
+    );
+    
+    // The URL is generated but not opened
+    // We'll extract it from the auth flow
+    return '${client.auth.currentSession?.accessToken ?? ''}';
+  }
+  
+  // Sign in with Google (WebView OAuth)
+  Future<String> getGoogleAuthUrl() async {
+    // Generate OAuth URL manually
+    final redirectUrl = Uri.encodeComponent('shoply://auth-callback');
+    final url = '${Env.supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=$redirectUrl';
+    print('Generated OAuth URL: $url');
+    return url;
+  }
+  
+  // Handle OAuth callback
+  Future<void> handleOAuthCallback(String url) async {
+    print('Handling OAuth callback: $url');
+    final uri = Uri.parse(url);
+    
+    // Extract tokens from URL
+    final code = uri.queryParameters['code'];
+    if (code != null) {
+      print('Got auth code, exchanging for session...');
+      // The deep link handler in main.dart will handle this
+    }
   }
 
   // Sign in with Apple
   Future<bool> signInWithApple() async {
-    return await client.auth.signInWithOAuth(OAuthProvider.apple);
+    return await client.auth.signInWithOAuth(
+      OAuthProvider.apple,
+      redirectTo: 'shoply://auth-callback',
+    );
   }
 
   // Sign out
@@ -71,6 +104,30 @@ class SupabaseService {
   // Update user
   Future<UserResponse> updateUser(UserAttributes attributes) async {
     return await client.auth.updateUser(attributes);
+  }
+
+  // Update user metadata
+  Future<void> updateUserMetadata(Map<String, dynamic> metadata) async {
+    final userId = client.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not authenticated');
+    
+    // Update auth metadata
+    await client.auth.updateUser(UserAttributes(data: metadata));
+    
+    // Also update in users table
+    if (metadata.containsKey('display_name')) {
+      await client.from('users').update({
+        'display_name': metadata['display_name'],
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
+    }
+    
+    if (metadata.containsKey('diet_preferences')) {
+      await client.from('users').update({
+        'diet_preferences': metadata['diet_preferences'],
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
+    }
   }
 
   // Database methods

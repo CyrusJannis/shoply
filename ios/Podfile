@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-platform :ios, '13.0'
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -31,6 +31,10 @@ target 'Runner' do
   use_frameworks!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  
+  # Force compatible GoogleUtilities version
+  pod 'GoogleUtilities', '7.13.3'
+  
   target 'RunnerTests' do
     inherit! :search_paths
   end
@@ -39,5 +43,52 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    
+    # Set minimum deployment target
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+    end
+    
+    # Add Privacy Manifests to plugins that need them
+    privacy_content = <<~PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSPrivacyTracking</key>
+    <false/>
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array/>
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array/>
+</dict>
+</plist>
+    PLIST
+    
+    if target.name == 'connectivity_plus'
+      # Create privacy manifest in the target's source directory
+      target_dir = installer.sandbox.pod_dir('connectivity_plus')
+      privacy_manifest_path = File.join(target_dir, 'PrivacyInfo.xcprivacy')
+      File.write(privacy_manifest_path, privacy_content)
+      
+      # Add to resources build phase
+      privacy_file_ref = target.project.new_file(privacy_manifest_path)
+      target.resources_build_phase.add_file_reference(privacy_file_ref)
+      target.project.save
+    end
+    
+    if target.name == 'share_plus'
+      # Create privacy manifest in the target's source directory
+      target_dir = installer.sandbox.pod_dir('share_plus')
+      privacy_manifest_path = File.join(target_dir, 'PrivacyInfo.xcprivacy')
+      File.write(privacy_manifest_path, privacy_content)
+      
+      # Add to resources build phase
+      privacy_file_ref = target.project.new_file(privacy_manifest_path)
+      target.resources_build_phase.add_file_reference(privacy_file_ref)
+      target.project.save
+    end
   end
 end

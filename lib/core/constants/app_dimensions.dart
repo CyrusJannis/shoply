@@ -6,6 +6,11 @@ class AppDimensions {
   // Card Padding & Margins
   static const double cardPadding = 16.0;
   static const double cardMargin = 16.0;
+  
+  // General Padding
+  static const double paddingSmall = 8.0;
+  static const double paddingMedium = 16.0;
+  static const double paddingLarge = 24.0;
 
   // Border Radius
   static const double cardBorderRadius = 16.0;

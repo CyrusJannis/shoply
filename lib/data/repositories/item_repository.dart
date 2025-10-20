@@ -1,8 +1,10 @@
 import 'package:shoply/data/models/shopping_item_model.dart';
 import 'package:shoply/data/services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ItemRepository {
   final SupabaseService _supabase;
+  final Map<String, RealtimeChannel> _channels = {};
 
   ItemRepository({SupabaseService? supabase})
       : _supabase = supabase ?? SupabaseService.instance;
@@ -121,5 +123,40 @@ class ItemRepository {
     return (response as List)
         .map((json) => ShoppingItemModel.fromJson(json))
         .toList();
+  }
+
+  /// Subscribe to item changes for a specific list
+  void subscribeToItemChanges(String listId, Function() onUpdate) {
+    // Don't create duplicate subscriptions
+    if (_channels.containsKey(listId)) return;
+
+    final channel = _supabase.client
+        .channel('shopping_items_$listId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'shopping_items',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'list_id',
+            value: listId,
+          ),
+          callback: (payload) {
+            print('DEBUG: Realtime update for list $listId: ${payload.eventType}');
+            onUpdate();
+          },
+        )
+        .subscribe();
+    
+    _channels[listId] = channel;
+  }
+
+  /// Unsubscribe from item changes for a specific list
+  void unsubscribeFromItemChanges(String listId) {
+    final channel = _channels[listId];
+    if (channel != null) {
+      channel.unsubscribe();
+      _channels.remove(listId);
+    }
   }
 }

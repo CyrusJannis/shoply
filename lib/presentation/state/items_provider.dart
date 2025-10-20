@@ -27,16 +27,34 @@ class ItemsNotifier extends StateNotifier<AsyncValue<List<ShoppingItemModel>>> {
 
   ItemsNotifier(this._repository, this.listId) : super(const AsyncValue.loading()) {
     loadItems();
+    _setupRealtimeSubscription();
+  }
+
+  void _setupRealtimeSubscription() {
+    // Subscribe to item changes for this specific list
+    _repository.subscribeToItemChanges(listId, () {
+      print('DEBUG: Realtime update for list $listId - reloading items');
+      loadItems();
+    });
   }
 
   Future<void> loadItems() async {
-    state = const AsyncValue.loading();
+    // Don't show loading state if we already have data (for realtime updates)
+    if (state is! AsyncData) {
+      state = const AsyncValue.loading();
+    }
     try {
       final items = await _repository.getListItems(listId);
       state = AsyncValue.data(items);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
     }
+  }
+  
+  @override
+  void dispose() {
+    _repository.unsubscribeFromItemChanges(listId);
+    super.dispose();
   }
 
   Future<void> addItem({

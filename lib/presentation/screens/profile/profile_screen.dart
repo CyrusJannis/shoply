@@ -1,21 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
 import 'package:shoply/data/services/supabase_service.dart';
+import 'package:shoply/presentation/screens/profile/settings/display_name_screen.dart';
+import 'package:shoply/presentation/screens/profile/settings/diet_preferences_screen.dart';
+import 'package:shoply/presentation/screens/profile/settings/language_screen.dart';
+import 'package:shoply/presentation/screens/profile/settings/theme_screen.dart';
+import 'package:shoply/presentation/screens/profile/settings/notifications_screen.dart';
+import 'package:shoply/presentation/screens/profile/settings/help_support_screen.dart';
+import 'package:shoply/presentation/state/language_provider.dart';
+import 'package:shoply/core/localization/localization_helper.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = SupabaseService.instance.currentUser;
     final email = user?.email ?? 'No email';
     final displayName = user?.userMetadata?['display_name'] ?? 'User';
+    final currentLanguage = ref.watch(languageProvider);
+    
+    final languageNames = {
+      'de': 'Deutsch',
+      'en': 'English',
+      'es': 'Español',
+      'fr': 'Français',
+      'it': 'Italiano',
+      'tr': 'Türkçe',
+    };
+    final languageName = languageNames[currentLanguage] ?? 'Deutsch';
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile', style: AppTextStyles.h2),
+        title: Text(context.tr('profile'), style: AppTextStyles.h2),
       ),
       body: ListView(
         padding: const EdgeInsets.all(AppDimensions.screenHorizontalPadding),
@@ -44,92 +64,87 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: AppDimensions.spacingXLarge),
           
           // Settings Sections
-          _buildSectionTitle('Preferences'),
+          _buildSectionTitle(context.tr('preferences')),
           _buildListTile(
             context,
             icon: Icons.person_outline,
-            title: 'Display Name',
+            title: context.tr('display_name'),
             subtitle: displayName,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Edit name coming soon')),
-              );
-            },
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DisplayNameScreen()),
+            ),
           ),
           _buildListTile(
             context,
             icon: Icons.restaurant,
-            title: 'Diet Preferences',
-            subtitle: 'No restrictions',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Diet preferences coming soon')),
-              );
-            },
+            title: context.tr('diet_preferences'),
+            subtitle: context.tr('no_restrictions'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DietPreferencesScreen()),
+            ),
           ),
           _buildListTile(
             context,
             icon: Icons.language,
-            title: 'Language',
-            subtitle: 'German',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Language settings coming soon')),
-              );
-            },
+            title: context.tr('language'),
+            subtitle: languageName,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LanguageScreen()),
+            ),
           ),
           
           const SizedBox(height: AppDimensions.spacingLarge),
           
-          _buildSectionTitle('Appearance'),
+          _buildSectionTitle(context.tr('appearance')),
           _buildListTile(
             context,
             icon: Icons.dark_mode_outlined,
-            title: 'Theme',
-            subtitle: 'System Default',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Theme settings coming soon')),
-              );
-            },
+            title: context.tr('theme'),
+            subtitle: 'System',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ThemeScreen()),
+            ),
           ),
           
           const SizedBox(height: AppDimensions.spacingLarge),
           
-          _buildSectionTitle('Notifications'),
+          _buildSectionTitle(context.tr('notifications')),
           _buildListTile(
             context,
             icon: Icons.notifications_outlined,
-            title: 'Push Notifications',
-            subtitle: 'Enabled',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Notification settings coming soon')),
-              );
-            },
+            title: context.tr('push_notifications'),
+            subtitle: context.tr('manage_preferences'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+            ),
           ),
           
           const SizedBox(height: AppDimensions.spacingLarge),
           
-          _buildSectionTitle('Help & Support'),
+          _buildSectionTitle(context.tr('help_support')),
           _buildListTile(
             context,
             icon: Icons.help_outline,
-            title: 'Help & Tips',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Help coming soon')),
-              );
-            },
+            title: context.tr('help_support'),
+            subtitle: 'FAQ, Contact, Feedback',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+            ),
           ),
           
           const SizedBox(height: AppDimensions.spacingLarge),
           
-          _buildSectionTitle('About'),
+          _buildSectionTitle(context.tr('about')),
           _buildListTile(
             context,
             icon: Icons.info_outline,
-            title: 'App Version',
+            title: context.tr('app_version'),
             subtitle: '1.0.0',
           ),
           
@@ -144,7 +159,7 @@ class ProfileScreen extends StatelessWidget {
               }
             },
             icon: const Icon(Icons.logout),
-            label: const Text('Sign Out'),
+            label: Text(context.tr('sign_out')),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,

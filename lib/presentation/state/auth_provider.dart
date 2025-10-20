@@ -78,6 +78,22 @@ class AuthService {
   Future<void> resetPassword(String email) async {
     await _supabase.resetPassword(email);
   }
+
+  Future<void> updateDisplayName(String displayName) async {
+    try {
+      await _supabase.updateUserMetadata({'display_name': displayName});
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateDietPreferences(List<String> preferences) async {
+    try {
+      await _supabase.updateUserMetadata({'diet_preferences': preferences});
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
 
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());

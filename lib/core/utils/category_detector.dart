@@ -3,20 +3,203 @@ import 'package:shoply/core/constants/categories.dart';
 class CategoryDetector {
   /// Detects the category of an item based on its name
   static String detectCategory(String itemName) {
-    if (itemName.isEmpty) return 'Other';
+    if (itemName.isEmpty) return 'Sonstiges';
     
-    final normalizedName = itemName.toLowerCase().trim();
+    // Normalize: lowercase, trim, remove special characters
+    final normalizedName = _normalize(itemName);
+    
+    String? bestMatch;
+    double bestScore = 0.0;
     
     // Check each category's keywords
     for (final entry in Categories.keywords.entries) {
       for (final keyword in entry.value) {
-        if (normalizedName.contains(keyword.toLowerCase())) {
+        final normalizedKeyword = _normalize(keyword);
+        
+        // Calculate similarity score
+        final score = _calculateSimilarity(normalizedName, normalizedKeyword);
+        
+        // If score is high enough and better than previous best
+        if (score > bestScore && score >= 0.6) {
+          bestScore = score;
+          bestMatch = entry.key;
+        }
+        
+        // Perfect match - return immediately
+        if (score >= 0.95) {
           return entry.key;
         }
       }
     }
     
-    return 'Other';
+    return bestMatch ?? 'Sonstiges';
+  }
+  
+  /// Calculate similarity between two strings (0.0 to 1.0)
+  static double _calculateSimilarity(String s1, String s2) {
+    // Exact match
+    if (s1 == s2) return 1.0;
+    
+    // Contains match
+    if (s1.contains(s2) || s2.contains(s1)) {
+      final longer = s1.length > s2.length ? s1 : s2;
+      final shorter = s1.length <= s2.length ? s1 : s2;
+      return shorter.length / longer.length;
+    }
+    
+    // Levenshtein similarity
+    final distance = _levenshteinDistance(s1, s2);
+    final maxLen = s1.length > s2.length ? s1.length : s2.length;
+    final levenScore = 1.0 - (distance / maxLen);
+    
+    // Phonetic similarity (Soundex-like)
+    final phoneticScore = _phoneticSimilarity(s1, s2);
+    
+    // Jaro-Winkler similarity
+    final jaroScore = _jaroWinklerSimilarity(s1, s2);
+    
+    // Weighted combination
+    return (levenScore * 0.4) + (phoneticScore * 0.3) + (jaroScore * 0.3);
+  }
+  
+  /// Phonetic similarity (how similar do they sound?)
+  static double _phoneticSimilarity(String s1, String s2) {
+    final p1 = _toPhonetic(s1);
+    final p2 = _toPhonetic(s2);
+    
+    if (p1 == p2) return 1.0;
+    
+    final distance = _levenshteinDistance(p1, p2);
+    final maxLen = p1.length > p2.length ? p1.length : p2.length;
+    return maxLen > 0 ? 1.0 - (distance / maxLen) : 0.0;
+  }
+  
+  /// Convert to phonetic representation
+  static String _toPhonetic(String text) {
+    return text
+        // Vowel normalization
+        .replaceAll(RegExp(r'[aeiou]+'), 'a')
+        // Common German sound patterns
+        .replaceAll('ch', 'k')
+        .replaceAll('sch', 's')
+        .replaceAll('ph', 'f')
+        .replaceAll('th', 't')
+        .replaceAll('dt', 't')
+        .replaceAll('ck', 'k')
+        // Double consonants
+        .replaceAll(RegExp(r'([bcdfghjklmnpqrstvwxyz])\1+'), r'\1')
+        // Remove remaining vowels except first
+        .replaceAllMapped(RegExp(r'^([bcdfghjklmnpqrstvwxyz]*)([aeiou])(.*)'), 
+            (m) => '${m[1]}${m[2]}${m[3]!.replaceAll(RegExp(r'[aeiou]'), '')}');
+  }
+  
+  /// Jaro-Winkler similarity
+  static double _jaroWinklerSimilarity(String s1, String s2) {
+    if (s1 == s2) return 1.0;
+    
+    final len1 = s1.length;
+    final len2 = s2.length;
+    
+    if (len1 == 0 || len2 == 0) return 0.0;
+    
+    final matchDistance = (len1 > len2 ? len1 : len2) ~/ 2 - 1;
+    final s1Matches = List.filled(len1, false);
+    final s2Matches = List.filled(len2, false);
+    
+    var matches = 0;
+    var transpositions = 0;
+    
+    // Find matches
+    for (var i = 0; i < len1; i++) {
+      final start = i - matchDistance > 0 ? i - matchDistance : 0;
+      final end = i + matchDistance < len2 - 1 ? i + matchDistance + 1 : len2;
+      
+      for (var j = start; j < end; j++) {
+        if (s2Matches[j] || s1[i] != s2[j]) continue;
+        s1Matches[i] = true;
+        s2Matches[j] = true;
+        matches++;
+        break;
+      }
+    }
+    
+    if (matches == 0) return 0.0;
+    
+    // Find transpositions
+    var k = 0;
+    for (var i = 0; i < len1; i++) {
+      if (!s1Matches[i]) continue;
+      while (!s2Matches[k]) k++;
+      if (s1[i] != s2[k]) transpositions++;
+      k++;
+    }
+    
+    final jaro = (matches / len1 + matches / len2 + 
+                  (matches - transpositions / 2) / matches) / 3;
+    
+    // Winkler modification
+    var prefix = 0;
+    for (var i = 0; i < (len1 < len2 ? len1 : len2); i++) {
+      if (s1[i] == s2[i]) {
+        prefix++;
+      } else {
+        break;
+      }
+      if (prefix >= 4) break;
+    }
+    
+    return jaro + prefix * 0.1 * (1 - jaro);
+  }
+  
+  /// Normalize text: lowercase, remove umlauts, remove special chars
+  static String _normalize(String text) {
+    return text
+        .toLowerCase()
+        .trim()
+        .replaceAll('ä', 'a')
+        .replaceAll('ö', 'o')
+        .replaceAll('ü', 'u')
+        .replaceAll('ß', 'ss')
+        .replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+  
+  /// Check if two strings are similar (for typo tolerance)
+  static bool _isSimilar(String s1, String s2) {
+    // Only check similarity if strings are reasonably close in length
+    if ((s1.length - s2.length).abs() > 2) return false;
+    
+    // Calculate Levenshtein distance
+    final distance = _levenshteinDistance(s1, s2);
+    
+    // Allow 1-2 character differences depending on length
+    final maxDistance = s2.length <= 4 ? 1 : 2;
+    return distance <= maxDistance;
+  }
+  
+  /// Calculate Levenshtein distance between two strings
+  static int _levenshteinDistance(String s1, String s2) {
+    if (s1.isEmpty) return s2.length;
+    if (s2.isEmpty) return s1.length;
+    
+    final len1 = s1.length;
+    final len2 = s2.length;
+    final matrix = List.generate(len1 + 1, (_) => List.filled(len2 + 1, 0));
+    
+    for (var i = 0; i <= len1; i++) matrix[i][0] = i;
+    for (var j = 0; j <= len2; j++) matrix[0][j] = j;
+    
+    for (var i = 1; i <= len1; i++) {
+      for (var j = 1; j <= len2; j++) {
+        final cost = s1[i - 1] == s2[j - 1] ? 0 : 1;
+        matrix[i][j] = [
+          matrix[i - 1][j] + 1,      // deletion
+          matrix[i][j - 1] + 1,      // insertion
+          matrix[i - 1][j - 1] + cost, // substitution
+        ].reduce((a, b) => a < b ? a : b);
+      }
+    }
+    
+    return matrix[len1][len2];
   }
   
   /// Gets the icon emoji for a category
