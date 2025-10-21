@@ -25,11 +25,13 @@ void main() async {
   // Initialize Native OAuth Service
   await NativeOAuthService.initialize();
 
-  // Handle deep links for OAuth
+  // Handle deep links for OAuth - this ensures the app returns from browser
   Supabase.instance.client.auth.onAuthStateChange.listen((data) {
     final event = data.event;
     if (event == AuthChangeEvent.signedIn) {
-      print('DEBUG: User signed in via OAuth');
+      print('✅ User signed in successfully');
+    } else if (event == AuthChangeEvent.signedOut) {
+      print('👋 User signed out');
     }
   });
 

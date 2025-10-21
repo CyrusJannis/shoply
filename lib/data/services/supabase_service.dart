@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shoply/core/config/env.dart';
-// import 'package:google_sign_in/google_sign_in.dart'; // Not needed - using OAuth
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class SupabaseService {
   static SupabaseService? _instance;
@@ -50,26 +51,81 @@ class SupabaseService {
     );
   }
 
-  // Sign in with Google (OAuth - works reliably on all platforms)
-  Future<bool> signInWithGoogle() async {
+  // Sign in with Google (Native - more reliable)
+  Future<AuthResponse> signInWithGoogle() async {
     try {
-      // Use OAuth flow for all platforms (most reliable)
-      return await client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: 'shoply://auth-callback',
+      print('🔵 Starting native Google Sign-In...');
+      
+      // Initialize Google Sign-In
+      final googleSignIn = GoogleSignIn(
+        // serverClientId is the Web Client ID - used for backend token verification
+        serverClientId: '901497821159-c2u63ailh5c2kunnsje62ol7ffekk50f.apps.googleusercontent.com',
+        // clientId will be automatically read from Info.plist (iOS Client ID)
       );
+      
+      // Trigger Google Sign-In flow
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        throw Exception('Google Sign-In was cancelled');
+      }
+      
+      print('🟢 Google user signed in: ${googleUser.email}');
+      
+      // Get Google Auth credentials
+      final googleAuth = await googleUser.authentication;
+      final accessToken = googleAuth.accessToken;
+      final idToken = googleAuth.idToken;
+      
+      if (accessToken == null) {
+        throw Exception('No Access Token found');
+      }
+      if (idToken == null) {
+        throw Exception('No ID Token found');
+      }
+      
+      print('🟢 Got tokens, signing in to Supabase...');
+      print('🔵 ID Token: ${idToken.substring(0, 50)}...');
+      print('🔵 Access Token: ${accessToken.substring(0, 50)}...');
+      
+      // Sign in to Supabase with Google credentials
+      // Use the simpler signInWithIdToken without nonce
+      final response = await client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+      );
+      
+      print('✅ Successfully signed in to Supabase');
+      return response;
     } catch (e) {
-      print('Google Sign-In Error: $e');
+      print('🔴 Google Sign-In Error: $e');
+      print('🔴 Error type: ${e.runtimeType}');
       rethrow;
     }
   }
 
-  // Sign in with Apple
-  Future<bool> signInWithApple() async {
-    return await client.auth.signInWithOAuth(
-      OAuthProvider.apple,
-      redirectTo: 'shoply://auth-callback',
-    );
+  // Sign in with Apple (Native iOS)
+  Future<AuthResponse> signInWithApple() async {
+    try {
+      // Get Apple ID credential
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      // Sign in to Supabase with the credential
+      final response = await client.auth.signInWithIdToken(
+        provider: OAuthProvider.apple,
+        idToken: credential.identityToken!,
+        nonce: credential.state,
+      );
+
+      return response;
+    } catch (e) {
+      print('Apple Sign-In Error: $e');
+      rethrow;
+    }
   }
 
   // Sign out

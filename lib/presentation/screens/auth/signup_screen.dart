@@ -80,9 +80,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _signUpWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      await SupabaseService.instance.signInWithGoogle();
-      if (mounted) {
-        context.go('/home');
+      final response = await SupabaseService.instance.signInWithGoogle();
+      if (response.user != null && mounted) {
+        // Navigation is handled by auth state listener in router
+        print('✅ User signed up: ${response.user!.email}');
       }
     } catch (e) {
       if (mounted) {

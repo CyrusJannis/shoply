@@ -62,8 +62,18 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<!-- Reversed iOS Client ID - NUR DIE NUMMER! -->
+				<!-- Reversed iOS Client ID -->
 				<string>com.googleusercontent.apps.901497821159-o5eu0qapn2d9t3fla2p34ppeb39lmqu7</string>
+			</array>
+		</dict>
+		<!-- Supabase Auth Callback -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.dominik.shoply</string>
+				<string>shoply</string>
 			</array>
 		</dict>
 	</array>
