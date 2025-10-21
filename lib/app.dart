@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shoply/core/localization/app_localizations.dart';
 import 'package:shoply/core/theme/app_theme.dart';
 import 'package:shoply/presentation/state/language_provider.dart';
 import 'package:shoply/presentation/state/theme_provider.dart';
@@ -18,12 +20,21 @@ class ShoplyAIApp extends ConsumerWidget {
 
     return MaterialApp.router(
       key: ValueKey('$language-$themeMode'), // Force rebuild when language or theme changes
-      title: 'ShoplyAI',
+      title: 'Shoply',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
       routerConfig: router,
+      // Localization
+      locale: Locale(language),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
     );
   }
 }

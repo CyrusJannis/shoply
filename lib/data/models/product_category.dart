@@ -1,46 +1,65 @@
 enum ProductCategory {
-  fruitsVegetables('Obst & Gemüse'),
-  meatFish('Fleisch, Fisch & Ersatzprodukte'),
+  fruitsVegetables('Obst und Gemüse'),
+  meatFish('Fleisch und Wurst'),
+  bakery('Backwaren'),
+  flowersPlants('Blumen und Pflanzen'),
   dairy('Kühlprodukte'),
   frozen('Tiefkühlprodukte'),
-  bakery('Backwaren & Getreide'),
-  canned('Konserven & Trockenware'),
-  spices('Gewürze & Würzmittel'),
-  snacks('Snacks & Süßwaren'),
+  staples('Grundnahrungsmittel'),
+  canned('Konserven'),
+  spices('Gewürze'),
+  condiments('Würzmittel'),
+  breakfast('Frühstücksprodukte'),
+  sweets('Süßigkeiten'),
+  snacks('Snacks'),
   beverages('Getränke'),
-  household('Haushalt & Hygiene'),
+  household('Haushaltswaren'),
+  cleaning('Reinigungsmittel'),
+  paper('Papierwaren'),
+  drugstore('Drogerie'),
+  bodycare('Körperpflege'),
+  cosmetics('Kosmetik'),
+  hygiene('Hygieneartikel'),
+  baby('Babyartikel'),
   petSupplies('Tierbedarf'),
-  other('Sonstiges');
+  nonFood('Non-Food'),
+  appliances('Haushaltsgeräte'),
+  stationery('Schreibwaren'),
+  textiles('Textilien'),
+  toys('Spielzeug'),
+  seasonal('Saisonartikel'),
+  checkout('Kassenbereich');
 
   final String displayName;
   const ProductCategory(this.displayName);
+  
+  /// Get category index for ML model
+  int get categoryIndex => ProductCategory.values.indexOf(this);
 
   /// Get category for a product name
   static ProductCategory categorize(String productName) {
     final name = productName.toLowerCase().trim();
 
-    // Obst & Gemüse
-    if (_matchesAny(name, [
-      'apfel', 'äpfel', 'banane', 'orange', 'birne', 'traube', 'erdbeere', 'himbeere',
-      'blaubeere', 'kirsche', 'pfirsich', 'pflaume', 'melone', 'ananas', 'mango',
-      'kiwi', 'zitrone', 'limette', 'avocado', 'tomate', 'gurke', 'salat', 'kopfsalat',
-      'karotte', 'möhre', 'kartoffel', 'zwiebel', 'knoblauch', 'paprika', 'zucchini',
-      'aubergine', 'brokkoli', 'blumenkohl', 'kohl', 'spinat', 'pilz', 'champignon',
-      'lauch', 'sellerie', 'radieschen', 'rettich', 'kürbis', 'mais', 'erbse',
-      'bohne', 'obst', 'gemüse', 'salat', 'kräuter', 'petersilie', 'basilikum',
-    ])) {
-      return ProductCategory.fruitsVegetables;
-    }
-
-    // Fleisch, Fisch & Ersatzprodukte
+    // Fleisch und Wurst
     if (_matchesAny(name, [
       'fleisch', 'hähnchen', 'huhn', 'rind', 'schwein', 'lamm', 'pute', 'ente',
       'wurst', 'schinken', 'salami', 'bacon', 'speck', 'hack', 'hackfleisch',
       'steak', 'schnitzel', 'fisch', 'lachs', 'thunfisch', 'forelle', 'kabeljau',
       'garnele', 'shrimp', 'muschel', 'tofu', 'tempeh', 'seitan', 'veggie',
-      'vegetarisch', 'vegan', 'fleischersatz',
+      'vegetarisch', 'vegan', 'fleischersatz', 'braten', 'brust', 'filet',
+      'leber', 'wienerschnitzel', 'fleischwurst', 'mortadella', 'schwarzwälder',
+      'bregenwurst', 'leberwurst', 'blutwurst', 'mett', 'gehacktes',
     ])) {
       return ProductCategory.meatFish;
+    }
+
+    // Blumen und Pflanzen
+    if (_matchesAny(name, [
+      'blume', 'blumen', 'pflanze', 'pflanzen', 'rose', 'tulpe', 'orchidee',
+      'kaktus', 'topfpflanze', 'schnittblumen', 'strauß', 'blumenstrauß',
+      'zimmerpflanze', 'gartenpflanze', 'samen', 'blumenerde', 'dünger',
+    ])) {
+      return ProductCategory.flowersPlants;
     }
 
     // Kühlprodukte
@@ -60,14 +79,22 @@ enum ProductCategory {
       return ProductCategory.frozen;
     }
 
-    // Backwaren & Getreide
+    // Backwaren
     if (_matchesAny(name, [
       'brot', 'brötchen', 'toast', 'baguette', 'croissant', 'kuchen', 'torte',
-      'mehl', 'zucker', 'salz', 'backpulver', 'hefe', 'reis', 'nudel', 'pasta',
-      'spaghetti', 'penne', 'fusilli', 'müsli', 'haferflocken', 'cornflakes',
-      'getreide', 'quinoa', 'couscous', 'bulgur',
+      'gebäck', 'brezel', 'laugenbrezel', 'muffin', 'donut', 'berliner',
+      'hörnchen', 'teilchen', 'plunder', 'strudel', 'zwieback',
     ])) {
       return ProductCategory.bakery;
+    }
+
+    // Grundnahrungsmittel
+    if (_matchesAny(name, [
+      'mehl', 'zucker', 'salz', 'reis', 'nudel', 'pasta', 'spaghetti',
+      'penne', 'fusilli', 'getreide', 'quinoa', 'couscous', 'bulgur',
+      'hirse', 'grieß', 'stärke', 'backpulver', 'hefe', 'natron',
+    ])) {
+      return ProductCategory.staples;
     }
 
     // Konserven & Trockenware
@@ -80,22 +107,50 @@ enum ProductCategory {
       return ProductCategory.canned;
     }
 
-    // Gewürze & Würzmittel
+    // Gewürze
     if (_matchesAny(name, [
       'gewürz', 'pfeffer', 'paprika', 'curry', 'kurkuma', 'zimt', 'muskat',
       'oregano', 'thymian', 'rosmarin', 'koriander', 'kreuzkümmel', 'chili',
-      'cayenne', 'vanille', 'essig', 'öl', 'olivenöl', 'sonnenblumenöl',
-      'rapsöl', 'senf', 'ketchup', 'mayonnaise', 'soße', 'sauce', 'brühe',
-      'bouillon', 'maggi', 'würze',
+      'cayenne', 'vanille', 'kardamom', 'ingwer', 'nelke', 'lorbeer',
+      'safran', 'anis', 'fenchel', 'kümmel', 'majoran', 'salbei',
     ])) {
       return ProductCategory.spices;
     }
 
-    // Snacks & Süßwaren
+    // Würzmittel
     if (_matchesAny(name, [
-      'chips', 'schokolade', 'schoko', 'bonbon', 'gummibärchen', 'keks',
-      'cookie', 'riegel', 'snack', 'knabber', 'salzstange', 'cracker',
-      'popcorn', 'nachtisch', 'süß', 'candy', 'lutscher',
+      'essig', 'öl', 'olivenöl', 'sonnenblumenöl', 'rapsöl', 'senf',
+      'ketchup', 'mayonnaise', 'soße', 'sauce', 'brühe', 'bouillon',
+      'maggi', 'würze', 'dressing', 'marinade', 'sojasauce', 'tabasco',
+      'worcester', 'balsamico', 'teriyaki', 'sriracha',
+    ])) {
+      return ProductCategory.condiments;
+    }
+
+    // Frühstücksprodukte
+    if (_matchesAny(name, [
+      'müsli', 'haferflocken', 'cornflakes', 'frühstück', 'cerealien',
+      'marmelade', 'honig', 'nutella', 'aufstrich', 'konfitüre', 'gelee',
+      'müsliriegel', 'granola', 'porridge', 'frühstücksflocken',
+    ])) {
+      return ProductCategory.breakfast;
+    }
+
+    // Süßigkeiten
+    if (_matchesAny(name, [
+      'schokolade', 'schoko', 'bonbon', 'gummibärchen', 'keks', 'cookie',
+      'riegel', 'nachtisch', 'süß', 'candy', 'lutscher', 'praline',
+      'trüffel', 'karamell', 'toffee', 'fudge', 'marshmallow', 'lakritze',
+      'weingummi', 'fruchtgummi', 'kaugummi', 'drops',
+    ])) {
+      return ProductCategory.sweets;
+    }
+
+    // Snacks
+    if (_matchesAny(name, [
+      'chips', 'snack', 'knabber', 'salzstange', 'cracker', 'popcorn',
+      'flips', 'erdnüsse', 'nüsse', 'studentenfutter', 'trail mix',
+      'brezel', 'nachos', 'tortilla', 'reiswaffel', 'maiswaffel',
     ])) {
       return ProductCategory.snacks;
     }
@@ -109,15 +164,82 @@ enum ProductCategory {
       return ProductCategory.beverages;
     }
 
-    // Haushalt & Hygiene
+    // Haushaltswaren
     if (_matchesAny(name, [
-      'putzen', 'reiniger', 'spülmittel', 'waschmittel', 'weichspüler',
-      'toilettenpapier', 'klopapier', 'küchenpapier', 'serviette', 'müllbeutel',
-      'schwamm', 'bürste', 'seife', 'shampoo', 'duschgel', 'zahnpasta',
-      'zahnbürste', 'deo', 'creme', 'lotion', 'rasier', 'windel', 'taschentuch',
-      'hygiene', 'haushalt',
+      'haushalt', 'geschirr', 'besteck', 'teller', 'tasse', 'glas',
+      'schüssel', 'topf', 'pfanne', 'messer', 'gabel', 'löffel',
+      'küchenutensil', 'schneide', 'reibe', 'sieb', 'schale', 'dose',
+      'box', 'behälter', 'aufbewahrung', 'frischhalte', 'alufolie',
     ])) {
       return ProductCategory.household;
+    }
+
+    // Reinigungsmittel
+    if (_matchesAny(name, [
+      'putzen', 'reiniger', 'spülmittel', 'waschmittel', 'weichspüler',
+      'allzweckreiniger', 'glasreiniger', 'badreiniger', 'wc-reiniger',
+      'entkalker', 'scheuermilch', 'bleiche', 'fleckentferner',
+      'schwamm', 'bürste', 'lappen', 'mikrofaser', 'staubwedel',
+    ])) {
+      return ProductCategory.cleaning;
+    }
+
+    // Papierwaren
+    if (_matchesAny(name, [
+      'toilettenpapier', 'klopapier', 'küchenpapier', 'serviette',
+      'taschentuch', 'tempo', 'zewa', 'papier', 'küchenrolle',
+      'feuchttuch', 'kosmetiktuch', 'pappteller', 'pappbecher',
+    ])) {
+      return ProductCategory.paper;
+    }
+
+    // Drogerie
+    if (_matchesAny(name, [
+      'drogerie', 'pflaster', 'verband', 'schmerzmittel', 'aspirin',
+      'ibuprofen', 'paracetamol', 'hustensaft', 'nasenspray',
+      'vitamine', 'nahrungsergänzung', 'magnesium', 'vitamin',
+      'erkältung', 'medikament', 'salbe', 'creme',
+    ])) {
+      return ProductCategory.drugstore;
+    }
+
+    // Körperpflege
+    if (_matchesAny(name, [
+      'seife', 'shampoo', 'duschgel', 'badezusatz', 'schaumbad',
+      'bodylotion', 'körperlotion', 'handcreme', 'fußcreme',
+      'peeling', 'körperpflege', 'pflege', 'waschgel', 'reinigung',
+    ])) {
+      return ProductCategory.bodycare;
+    }
+
+    // Kosmetik
+    if (_matchesAny(name, [
+      'kosmetik', 'makeup', 'make-up', 'schminke', 'lippenstift',
+      'mascara', 'wimperntusche', 'lidschatten', 'rouge', 'puder',
+      'foundation', 'concealer', 'nagellack', 'parfüm', 'parfum',
+      'eau de toilette', 'duftwasser', 'gesichtscreme', 'tagescreme',
+    ])) {
+      return ProductCategory.cosmetics;
+    }
+
+    // Hygieneartikel
+    if (_matchesAny(name, [
+      'zahnpasta', 'zahnbürste', 'zahnseide', 'mundspülung',
+      'mundwasser', 'deo', 'deodorant', 'rasier', 'rasierer',
+      'rasierschaum', 'rasiergel', 'aftershave', 'damenhygiene',
+      'binde', 'tampon', 'slipeinlage', 'hygiene', 'intimpflege',
+    ])) {
+      return ProductCategory.hygiene;
+    }
+
+    // Babyartikel
+    if (_matchesAny(name, [
+      'baby', 'windel', 'pampers', 'feuchttücher', 'babytücher',
+      'babynahrung', 'babybrei', 'babymilch', 'fläschchen',
+      'schnuller', 'nuckel', 'beißring', 'babypflege', 'wundcreme',
+      'babyshampoo', 'babybad', 'babypuder',
+    ])) {
+      return ProductCategory.baby;
     }
 
     // Tierbedarf
@@ -129,7 +251,72 @@ enum ProductCategory {
       return ProductCategory.petSupplies;
     }
 
-    return ProductCategory.other;
+    // Non-Food
+    if (_matchesAny(name, [
+      'non-food', 'nonfood', 'batterie', 'glühbirne', 'kerze',
+      'feuerzeug', 'streichholz', 'zeitschrift', 'zeitung', 'buch',
+      'karte', 'geschenk', 'deko', 'dekoration',
+    ])) {
+      return ProductCategory.nonFood;
+    }
+
+    // Haushaltsgeräte
+    if (_matchesAny(name, [
+      'mixer', 'toaster', 'wasserkocher', 'kaffeemaschine',
+      'staubsauger', 'bügeleisen', 'föhn', 'haartrockner',
+      'elektro', 'gerät', 'küchengerät', 'haushaltsgerät',
+    ])) {
+      return ProductCategory.appliances;
+    }
+
+    // Schreibwaren
+    if (_matchesAny(name, [
+      'stift', 'kugelschreiber', 'bleistift', 'füller', 'marker',
+      'textmarker', 'radiergummi', 'spitzer', 'lineal', 'schere',
+      'kleber', 'klebestift', 'tesafilm', 'heft', 'block', 'notiz',
+      'ordner', 'mappe', 'schreibwaren', 'büro',
+    ])) {
+      return ProductCategory.stationery;
+    }
+
+    // Textilien
+    if (_matchesAny(name, [
+      'handtuch', 'geschirrtuch', 'waschlappen', 'bettwäsche',
+      'bettlaken', 'kissenbezug', 'decke', 'kissen', 'textil',
+      'stoff', 'tuch', 'serviette', 'tischdecke',
+    ])) {
+      return ProductCategory.textiles;
+    }
+
+    // Spielzeug
+    if (_matchesAny(name, [
+      'spielzeug', 'spiel', 'puzzle', 'puppe', 'teddy', 'kuscheltier',
+      'lego', 'baustein', 'ball', 'auto', 'spielauto', 'actionfigur',
+      'brettspiel', 'kartenspiel', 'malbuch', 'buntstift',
+    ])) {
+      return ProductCategory.toys;
+    }
+
+    // Saisonartikel
+    if (_matchesAny(name, [
+      'weihnachten', 'ostern', 'halloween', 'silvester', 'advent',
+      'nikolaus', 'lebkuchen', 'spekulatius', 'christstollen',
+      'osterei', 'schokoladenhase', 'adventskalender', 'lametta',
+      'christbaumkugel', 'lichterkette', 'saison', 'saisonal',
+    ])) {
+      return ProductCategory.seasonal;
+    }
+
+    // Kassenbereich
+    if (_matchesAny(name, [
+      'kaugummi', 'kasse', 'kassenbereich', 'zeitschrift',
+      'lotterie', 'rubbellos', 'zigarette', 'tabak', 'feuerzeug',
+      'pfandbon', 'gutschein', 'geschenkkarte', 'tüte', 'tragetasche',
+    ])) {
+      return ProductCategory.checkout;
+    }
+
+    return ProductCategory.staples;
   }
 
   static bool _matchesAny(String text, List<String> keywords) {

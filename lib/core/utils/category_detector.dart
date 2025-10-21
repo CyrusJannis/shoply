@@ -1,38 +1,31 @@
 import 'package:shoply/core/constants/categories.dart';
+import 'package:shoply/data/models/product_category.dart';
+import 'package:shoply/data/services/product_classifier_service.dart';
 
 class CategoryDetector {
   /// Detects the category of an item based on its name
+  /// Uses intelligent ML-based classification
   static String detectCategory(String itemName) {
-    if (itemName.isEmpty) return 'Sonstiges';
+    if (itemName.isEmpty) return 'Grundnahrungsmittel';
     
-    // Normalize: lowercase, trim, remove special characters
-    final normalizedName = _normalize(itemName);
+    // Use the new ML-based classifier
+    final result = ProductClassifierService.instance.classify(itemName);
     
-    String? bestMatch;
-    double bestScore = 0.0;
-    
-    // Check each category's keywords
-    for (final entry in Categories.keywords.entries) {
-      for (final keyword in entry.value) {
-        final normalizedKeyword = _normalize(keyword);
-        
-        // Calculate similarity score
-        final score = _calculateSimilarity(normalizedName, normalizedKeyword);
-        
-        // If score is high enough and better than previous best
-        if (score > bestScore && score >= 0.6) {
-          bestScore = score;
-          bestMatch = entry.key;
-        }
-        
-        // Perfect match - return immediately
-        if (score >= 0.95) {
-          return entry.key;
-        }
-      }
+    // Return the display name of the detected category
+    return result.category.displayName;
+  }
+  
+  /// Detects category with confidence score
+  static ProductClassificationResult detectCategoryWithConfidence(String itemName) {
+    if (itemName.isEmpty) {
+      return ProductClassificationResult(
+        category: ProductCategory.staples,
+        confidence: 0.3,
+        method: ClassificationMethod.fallback,
+      );
     }
     
-    return bestMatch ?? 'Sonstiges';
+    return ProductClassifierService.instance.classify(itemName);
   }
   
   /// Calculate similarity between two strings (0.0 to 1.0)
@@ -204,7 +197,7 @@ class CategoryDetector {
   
   /// Gets the icon emoji for a category
   static String getCategoryIcon(String category) {
-    return Categories.icons[category] ?? '📦';
+    return Categories.icons[category] ?? '🌾';
   }
   
   /// Gets all category names

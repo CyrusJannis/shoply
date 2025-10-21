@@ -113,9 +113,9 @@ class ItemCard extends StatelessWidget {
                       
                       Row(
                         children: [
-                          // Quantity
+                          // Quantity - display as whole number if it's a whole number
                           Text(
-                            '${item.quantity}${item.unit != null ? ' ${item.unit}' : ''}',
+                            '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity}${item.unit != null ? ' ${item.unit}' : ''}',
                             style: AppTextStyles.caption.copyWith(
                               color: Colors.grey.shade600,
                             ),

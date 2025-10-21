@@ -7,6 +7,7 @@ import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
 import 'package:shoply/core/constants/categories.dart';
+import 'package:shoply/core/localization/app_localizations.dart';
 import 'package:shoply/core/utils/category_detector.dart';
 import 'package:shoply/core/utils/diet_checker.dart';
 import 'package:shoply/data/models/shopping_item_model.dart';
@@ -108,8 +109,9 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
               focusNode: _focusNode,
               autofocus: false,
               textInputAction: TextInputAction.done,
+              textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                hintText: 'Add item...',
+                hintText: AppLocalizations.of(context).addItem,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.add),
@@ -133,9 +135,9 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                 if (items.isEmpty) {
                   return EmptyState(
                     icon: Icons.shopping_cart,
-                    title: 'No items yet',
-                    subtitle: 'Add your first item to get started',
-                    actionText: 'Add Item',
+                    title: AppLocalizations.of(context).emptyList,
+                    subtitle: 'Füge Produkte hinzu, um mit dem Einkaufen zu beginnen',
+                    actionText: AppLocalizations.of(context).addItem,
                     onActionPressed: () => _showAddItemDialog(context),
                   );
                 }
@@ -260,7 +262,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   icon: const Icon(Icons.check_circle),
-                  label: const Text('Einkauf abschließen'),
+                  label: Text(AppLocalizations.of(context).completeShopping),
                 ),
               );
             },
@@ -269,10 +271,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddItemDialog(context),
-        child: const Icon(Icons.add),
-      ),
+      // FloatingActionButton removed - add items via search bar
     );
   }
 
@@ -392,17 +391,17 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Add Item', style: AppTextStyles.h2),
+            Text(AppLocalizations.of(context).addItem, style: AppTextStyles.h2),
             const SizedBox(height: AppDimensions.spacingMedium),
             
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Item Name',
-                hintText: 'e.g., Milk',
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).itemName,
+                hintText: 'z.B. Milch, Brot, Äpfel',
               ),
               autofocus: true,
-              textCapitalization: TextCapitalization.words,
+              textCapitalization: TextCapitalization.sentences,
             ),
             
             const SizedBox(height: AppDimensions.spacingMedium),
@@ -442,11 +441,12 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
             
             TextField(
               controller: notesController,
-              decoration: const InputDecoration(
-                labelText: 'Notes (optional)',
-                hintText: 'e.g., Low fat, organic',
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).notes,
+                hintText: 'z.B. Bio, Vollmilch, 1l',
               ),
               maxLines: 2,
+              textCapitalization: TextCapitalization.sentences,
             ),
             
             const SizedBox(height: AppDimensions.spacingLarge),
@@ -475,7 +475,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
 
                 Navigator.pop(context);
               },
-              child: const Text('Add Item'),
+              child: Text(AppLocalizations.of(context).addItem),
             ),
             
             const SizedBox(height: AppDimensions.spacingMedium),
@@ -487,8 +487,13 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
 
   void _showEditItemDialog(BuildContext context, ShoppingItemModel item) {
     final nameController = TextEditingController(text: item.name);
-    final quantityController = TextEditingController(text: item.quantity.toString());
+    // Display quantity as whole number if it's a whole number
+    final quantityText = item.quantity % 1 == 0 
+        ? item.quantity.toInt().toString() 
+        : item.quantity.toString();
+    final quantityController = TextEditingController(text: quantityText);
     final notesController = TextEditingController(text: item.notes ?? '');
+    String selectedUnit = item.unit ?? 'pcs';
 
     showModalBottomSheet(
       context: context,
@@ -509,28 +514,58 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Edit Item', style: AppTextStyles.h2),
+            Text(AppLocalizations.of(context).editItem, style: AppTextStyles.h2),
             const SizedBox(height: AppDimensions.spacingMedium),
             
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Item Name'),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context).itemName),
+              textCapitalization: TextCapitalization.sentences,
             ),
             
             const SizedBox(height: AppDimensions.spacingMedium),
             
-            TextField(
-              controller: quantityController,
-              decoration: const InputDecoration(labelText: 'Quantity'),
-              keyboardType: TextInputType.number,
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: quantityController,
+                    decoration: InputDecoration(labelText: AppLocalizations.of(context).quantity),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: AppDimensions.spacingSmall),
+                Expanded(
+                  flex: 1,
+                  child: StatefulBuilder(
+                    builder: (context, setState) => DropdownButtonFormField<String>(
+                      value: selectedUnit,
+                      decoration: InputDecoration(labelText: AppLocalizations.of(context).unit),
+                      items: Categories.units.map((unit) {
+                        return DropdownMenuItem(
+                          value: unit,
+                          child: Text(unit),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedUnit = value ?? 'pcs';
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
             
             const SizedBox(height: AppDimensions.spacingMedium),
             
             TextField(
               controller: notesController,
-              decoration: const InputDecoration(labelText: 'Notes'),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context).notes),
               maxLines: 2,
+              textCapitalization: TextCapitalization.sentences,
             ),
             
             const SizedBox(height: AppDimensions.spacingLarge),
@@ -545,26 +580,27 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                           .deleteItem(item.id);
                       Navigator.pop(context);
                     },
-                    child: const Text('Delete'),
+                    child: Text(AppLocalizations.of(context).delete),
                   ),
                 ),
                 const SizedBox(width: AppDimensions.spacingSmall),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
+                      final quantity = double.tryParse(quantityController.text) ?? 1.0;
                       ref
                           .read(itemsNotifierProvider(widget.listId).notifier)
                           .updateItem(item.id, {
                         'name': nameController.text.trim(),
-                        'quantity':
-                            double.tryParse(quantityController.text) ?? 1.0,
+                        'quantity': quantity,
+                        'unit': selectedUnit,
                         'notes': notesController.text.trim().isEmpty
                             ? null
                             : notesController.text.trim(),
                       });
                       Navigator.pop(context);
                     },
-                    child: const Text('Save'),
+                    child: Text(AppLocalizations.of(context).save),
                   ),
                 ),
               ],
@@ -585,7 +621,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
         children: [
           ListTile(
             leading: const Icon(Icons.swap_vert),
-            title: const Text('Custom (Drag & Drop)'),
+            title: Text(AppLocalizations.of(context).customSort),
             trailing: _sortMode == 'custom' ? const Icon(Icons.check) : null,
             onTap: () {
               setState(() => _sortMode = 'custom');
@@ -594,7 +630,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.category),
-            title: const Text('By Category'),
+            title: Text(AppLocalizations.of(context).sortByCategory),
             trailing: _sortMode == 'category' ? const Icon(Icons.check) : null,
             onTap: () {
               setState(() => _sortMode = 'category');
@@ -603,7 +639,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.sort_by_alpha),
-            title: const Text('Alphabetical'),
+            title: Text(AppLocalizations.of(context).sortAlphabetically),
             trailing: _sortMode == 'alphabetical' ? const Icon(Icons.check) : null,
             onTap: () {
               setState(() => _sortMode = 'alphabetical');
@@ -612,7 +648,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.numbers),
-            title: const Text('By Quantity'),
+            title: Text(AppLocalizations.of(context).sortByQuantity),
             trailing: _sortMode == 'quantity' ? const Icon(Icons.check) : null,
             onTap: () {
               setState(() => _sortMode = 'quantity');
@@ -628,12 +664,12 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Share List'),
+        title: Text(AppLocalizations.of(context).shareList),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Generate a share code to invite others to this list.'),
+            Text('Erstelle einen Freigabecode, um andere zu dieser Liste einzuladen.'),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () async {
@@ -647,11 +683,11 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: const Text('Share Code'),
+                        title: const Text('Freigabecode'),
                         content: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('Share this code with others:'),
+                            const Text('Teile diesen Code mit anderen:'),
                             const SizedBox(height: 16),
                             Container(
                               padding: const EdgeInsets.all(16),
@@ -670,7 +706,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                             ),
                             const SizedBox(height: 16),
                             const Text(
-                              'Code expires in 24 hours',
+                              'Code läuft in 24 Stunden ab',
                               style: TextStyle(fontSize: 12, color: Colors.grey),
                             ),
                             const SizedBox(height: 16),
@@ -683,11 +719,11 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                                   onPressed: () {
                                     Clipboard.setData(ClipboardData(text: code));
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Code copied to clipboard')),
+                                      const SnackBar(content: Text('Code in Zwischenablage kopiert')),
                                     );
                                   },
                                   icon: const Icon(Icons.copy, size: 18),
-                                  label: const Text('Copy'),
+                                  label: const Text('Kopieren'),
                                   style: ElevatedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   ),
@@ -695,12 +731,12 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                                 ElevatedButton.icon(
                                   onPressed: () {
                                     Share.share(
-                                      'Join my shopping list with code: $code\n\nOpen the ShoplyAI app and tap the "Join List" button to enter this code.',
-                                      subject: 'Join my ShoplyAI list',
+                                      'Trete meiner Einkaufsliste bei mit Code: $code\n\nÖffne die ShoplyAI App und tippe auf "Liste beitreten" um diesen Code einzugeben.',
+                                      subject: 'Meine ShoplyAI Liste',
                                     );
                                   },
                                   icon: const Icon(Icons.share, size: 18),
-                                  label: const Text('Share'),
+                                  label: const Text('Teilen'),
                                   style: ElevatedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   ),
@@ -712,7 +748,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: const Text('Close'),
+                            child: const Text('Schließen'),
                           ),
                         ],
                       ),
@@ -721,20 +757,20 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
+                      SnackBar(content: Text('Fehler: $e')),
                     );
                   }
                 }
               },
               icon: const Icon(Icons.qr_code),
-              label: const Text('Generate Share Code'),
+              label: const Text('Freigabecode erstellen'),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
         ],
       ),
@@ -770,7 +806,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),

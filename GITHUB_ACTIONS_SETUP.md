@@ -18,7 +18,7 @@ Gehe zu: **GitHub Repository → Settings → Secrets and variables → Actions 
 3. Klicke auf **"+"** (Generate API Key)
 4. Name: `GitHub Actions`
 5. Access: **App Manager**
-6. Klicke **Generate**
+6. Klicke **Generate**  
 7. **Lade die .p8 Datei herunter** (nur einmal möglich!)
 8. Notiere:
    - **Issuer ID** (oben auf der Seite)
