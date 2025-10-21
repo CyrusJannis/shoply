@@ -54,5 +54,20 @@
 	<!-- Biometric Authentication -->
 	<key>NSFaceIDUsageDescription</key>
 	<string>We use Face ID for secure authentication</string>
+	<!-- Google Sign-In -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Reversed iOS Client ID - NUR DIE NUMMER! -->
+				<string>com.googleusercontent.apps.901497821159-o5eu0qapn2d9t3fla2p34ppeb39lmqu7</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>901497821159-o5eu0qapn2d9t3fla2p34ppeb39lmqu7.apps.googleusercontent.com</string>
 </dict>
 </plist>

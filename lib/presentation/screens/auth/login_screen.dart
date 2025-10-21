@@ -59,23 +59,13 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
     try {
-      print('Login Screen: Getting Google OAuth URL...');
-      final authUrl = await SupabaseService.instance.getGoogleAuthUrl();
-      
-      if (!mounted) return;
-      
-      // Show native OAuth window
-      await NativeOAuthService.showOAuthWindow(
-        authUrl: authUrl,
-        redirectScheme: 'shoply://',
-        onRedirect: (url) async {
-          print('Login Screen: Got redirect: $url');
-          await SupabaseService.instance.handleOAuthCallback(url);
-        },
-      );
+      await SupabaseService.instance.signInWithGoogle();
+      if (mounted) {
+        context.go('/home');
+      }
     } catch (e) {
-      print('Login Screen: Google Sign-In error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -83,6 +73,10 @@ class _LoginScreenState extends State<LoginScreen> {
             backgroundColor: AppColors.error,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }

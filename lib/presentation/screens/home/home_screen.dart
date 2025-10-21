@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
 import 'package:shoply/core/localization/localization_helper.dart';
 import 'package:shoply/data/services/supabase_service.dart';
 import 'package:shoply/presentation/screens/history/shopping_history_screen.dart';
+import 'package:shoply/presentation/state/lists_provider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -76,10 +79,8 @@ class HomeScreen extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // Create new list
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Create list coming soon')),
-                      );
+                      // Navigate to lists screen with create flag
+                      context.go('/lists?create=true');
                     },
                     icon: const Icon(Icons.add),
                     label: Text(context.tr('create_new_list')),

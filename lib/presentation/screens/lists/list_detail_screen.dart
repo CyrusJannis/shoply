@@ -140,8 +140,13 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                   );
                 }
 
-                // Group items by category
-                final groupedItems = _groupItemsByCategory(items);
+                // Sort items first
+                final sortedItems = _sortItems(items);
+                
+                // Group items by category (only if sorting by category)
+                final groupedItems = _sortMode == 'category' 
+                    ? _groupItemsByCategory(sortedItems)
+                    : [{'category': '', 'items': sortedItems}];
 
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(
@@ -157,35 +162,36 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Category Header
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            top: AppDimensions.spacingLarge,
-                            bottom: AppDimensions.spacingSmall,
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                icon,
-                                style: const TextStyle(fontSize: 20),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                category,
-                                style: AppTextStyles.h3.copyWith(
-                                  fontWeight: FontWeight.bold,
+                        // Category Header (only show if category is not empty)
+                        if (category.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              top: AppDimensions.spacingLarge,
+                              bottom: AppDimensions.spacingSmall,
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  icon,
+                                  style: const TextStyle(fontSize: 20),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '(${categoryItems.length})',
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: Colors.grey,
+                                const SizedBox(width: 8),
+                                Text(
+                                  category,
+                                  style: AppTextStyles.h3.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 8),
+                                Text(
+                                  '(${categoryItems.length})',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
                         // Category Items with Reorderable List
                         ReorderableListView(
                           shrinkWrap: true,
@@ -196,10 +202,10 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                             _reorderItemsInCategory(categoryItems, oldIndex, newIndex);
                             HapticFeedback.lightImpact();
                           },
-                          children: categoryItems.asMap().entries.map((entry) {
+                          children: categoryItems.asMap().entries.map<Widget>((entry) {
                             final itemIndex = entry.key;
                             final item = entry.value;
-                            return ReorderableDragStartListener(
+                            return ReorderableDelayedDragStartListener(
                               key: ValueKey(item.id),
                               index: itemIndex,
                               child: ItemCard(
@@ -322,6 +328,10 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
     final list = List<ShoppingItemModel>.from(items);
     
     switch (_sortMode) {
+      case 'custom':
+        // Keep original order (from database sort_order)
+        list.sort((a, b) => (a.sortOrder ?? 0).compareTo(b.sortOrder ?? 0));
+        break;
       case 'category':
         list.sort((a, b) {
           final catA = a.category ?? 'Sonstiges';
@@ -574,6 +584,15 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
+            leading: const Icon(Icons.swap_vert),
+            title: const Text('Custom (Drag & Drop)'),
+            trailing: _sortMode == 'custom' ? const Icon(Icons.check) : null,
+            onTap: () {
+              setState(() => _sortMode = 'custom');
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.category),
             title: const Text('By Category'),
             trailing: _sortMode == 'category' ? const Icon(Icons.check) : null,
@@ -727,14 +746,26 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
     WidgetRef ref,
     List<ShoppingItemModel> items,
   ) async {
+    // Filter only checked items
+    final checkedItems = items.where((item) => item.isChecked).toList();
+    
+    if (checkedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Keine markierten Artikel zum Abschließen'),
+        ),
+      );
+      return;
+    }
+    
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Einkauf abschließen?'),
         content: Text(
-          'Möchtest du den Einkauf mit ${items.length} Artikel(n) abschließen?\n\n'
-          'Die Liste wird geleert und in deiner Einkaufshistorie gespeichert.',
+          'Möchtest du den Einkauf mit ${checkedItems.length} markierten Artikel(n) abschließen?\n\n'
+          'Nur die markierten Artikel werden in deiner Einkaufshistorie gespeichert und aus der Liste entfernt.',
         ),
         actions: [
           TextButton(
@@ -755,15 +786,15 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
     if (confirmed != true) return;
 
     try {
-      // Save to history
+      // Save only checked items to history
       final historyService = ShoppingHistoryService();
       await historyService.completeShoppingTrip(
         listName: widget.listName,
-        items: items,
+        items: checkedItems,
       );
 
-      // Delete all items from the list at once
-      final itemIds = items.map((item) => item.id).toList();
+      // Delete only checked items from the list
+      final itemIds = checkedItems.map((item) => item.id).toList();
       await SupabaseService.instance
           .from('shopping_items')
           .delete()
@@ -774,8 +805,8 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Einkauf erfolgreich abgeschlossen!'),
+          SnackBar(
+            content: Text('✅ ${checkedItems.length} Artikel erfolgreich abgeschlossen!'),
             backgroundColor: AppColors.success,
           ),
         );

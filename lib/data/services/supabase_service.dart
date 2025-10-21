@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shoply/core/config/env.dart';
+// import 'package:google_sign_in/google_sign_in.dart'; // Not needed - using OAuth
 
 class SupabaseService {
   static SupabaseService? _instance;
@@ -48,38 +50,17 @@ class SupabaseService {
     );
   }
 
-  // Get Google OAuth URL for WebView
-  Future<String> getGoogleOAuthUrl() async {
-    final response = await client.auth.signInWithOAuth(
-      OAuthProvider.google,
-      redirectTo: 'shoply://auth-callback',
-      authScreenLaunchMode: LaunchMode.platformDefault,
-    );
-    
-    // The URL is generated but not opened
-    // We'll extract it from the auth flow
-    return '${client.auth.currentSession?.accessToken ?? ''}';
-  }
-  
-  // Sign in with Google (WebView OAuth)
-  Future<String> getGoogleAuthUrl() async {
-    // Generate OAuth URL manually
-    final redirectUrl = Uri.encodeComponent('shoply://auth-callback');
-    final url = '${Env.supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=$redirectUrl';
-    print('Generated OAuth URL: $url');
-    return url;
-  }
-  
-  // Handle OAuth callback
-  Future<void> handleOAuthCallback(String url) async {
-    print('Handling OAuth callback: $url');
-    final uri = Uri.parse(url);
-    
-    // Extract tokens from URL
-    final code = uri.queryParameters['code'];
-    if (code != null) {
-      print('Got auth code, exchanging for session...');
-      // The deep link handler in main.dart will handle this
+  // Sign in with Google (OAuth - works reliably on all platforms)
+  Future<bool> signInWithGoogle() async {
+    try {
+      // Use OAuth flow for all platforms (most reliable)
+      return await client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'shoply://auth-callback',
+      );
+    } catch (e) {
+      print('Google Sign-In Error: $e');
+      rethrow;
     }
   }
 

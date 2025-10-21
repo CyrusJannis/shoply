@@ -20,6 +20,7 @@ class ListsScreen extends ConsumerStatefulWidget {
 }
 
 enum SortOption {
+  custom('Custom'),
   itemsDesc('Most Items'),
   itemsAsc('Least Items'),
   nameAsc('A-Z'),
@@ -33,6 +34,7 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
   SortOption _currentSort = SortOption.itemsDesc;
   String _searchQuery = '';
   final _searchController = TextEditingController();
+  List<dynamic>? _customOrder; // Store custom order when drag & drop is used
 
   @override
   void initState() {
@@ -40,6 +42,12 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
     // Reload lists when this screen is opened
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(listsNotifierProvider.notifier).loadLists();
+      
+      // Check if we should show create dialog
+      final uri = GoRouterState.of(context).uri;
+      if (uri.queryParameters['create'] == 'true') {
+        _showCreateListDialog(context, ref);
+      }
     });
   }
 
@@ -153,46 +161,82 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
 
           // Sort lists based on selected option
           final sortedLists = [...filteredLists];
-          switch (_currentSort) {
-            case SortOption.itemsDesc:
-              sortedLists.sort((a, b) => (b.itemCount ?? 0).compareTo(a.itemCount ?? 0));
-              break;
-            case SortOption.itemsAsc:
-              sortedLists.sort((a, b) => (a.itemCount ?? 0).compareTo(b.itemCount ?? 0));
-              break;
-            case SortOption.nameAsc:
-              sortedLists.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-              break;
-            case SortOption.nameDesc:
-              sortedLists.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
-              break;
+          
+          if (_currentSort == SortOption.custom && _customOrder != null) {
+            // Use custom order
+            sortedLists.sort((a, b) {
+              final indexA = _customOrder!.indexWhere((id) => id == a.id);
+              final indexB = _customOrder!.indexWhere((id) => id == b.id);
+              if (indexA == -1) return 1;
+              if (indexB == -1) return -1;
+              return indexA.compareTo(indexB);
+            });
+          } else {
+            // Use standard sorting
+            switch (_currentSort) {
+              case SortOption.custom:
+                // If custom but no order yet, keep original order
+                break;
+              case SortOption.itemsDesc:
+                sortedLists.sort((a, b) => (b.itemCount ?? 0).compareTo(a.itemCount ?? 0));
+                break;
+              case SortOption.itemsAsc:
+                sortedLists.sort((a, b) => (a.itemCount ?? 0).compareTo(b.itemCount ?? 0));
+                break;
+              case SortOption.nameAsc:
+                sortedLists.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+                break;
+              case SortOption.nameDesc:
+                sortedLists.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+                break;
+            }
           }
 
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(listsNotifierProvider);
             },
-            child: ListView.builder(
+            child: ReorderableListView.builder(
               padding: const EdgeInsets.all(AppDimensions.screenHorizontalPadding),
               itemCount: sortedLists.length,
+              buildDefaultDragHandles: false,
+              onReorder: (oldIndex, newIndex) {
+                HapticFeedback.mediumImpact();
+                setState(() {
+                  if (newIndex > oldIndex) {
+                    newIndex -= 1;
+                  }
+                  final item = sortedLists.removeAt(oldIndex);
+                  sortedLists.insert(newIndex, item);
+                  
+                  // Switch to custom sort and save the new order
+                  _currentSort = SortOption.custom;
+                  _customOrder = sortedLists.map((list) => list.id).toList();
+                });
+                HapticFeedback.lightImpact();
+              },
               itemBuilder: (context, index) {
                 final list = sortedLists[index];
-                return ListCard(
-                  list: list,
-                  onTap: () {
-                    context.go('/lists/${list.id}?name=${Uri.encodeComponent(list.name)}');
-                  },
-                  onDelete: () async {
-                    final confirm = await _showDeleteConfirmation(context, list.name);
-                    if (confirm == true) {
-                      await ref
-                          .read(listsNotifierProvider.notifier)
-                          .deleteList(list.id);
-                    }
-                  },
-                  onShare: () {
-                    _showShareOptions(context, ref, list.id);
-                  },
+                return ReorderableDelayedDragStartListener(
+                  key: ValueKey(list.id),
+                  index: index,
+                  child: ListCard(
+                    list: list,
+                    onTap: () {
+                      context.go('/lists/${list.id}?name=${Uri.encodeComponent(list.name)}');
+                    },
+                    onDelete: () async {
+                      final confirm = await _showDeleteConfirmation(context, list.name);
+                      if (confirm == true) {
+                        await ref
+                            .read(listsNotifierProvider.notifier)
+                            .deleteList(list.id);
+                      }
+                    },
+                    onShare: () {
+                      _showShareOptions(context, ref, list.id);
+                    },
+                  ),
                 );
               },
             ),

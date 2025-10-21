@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
 import 'package:shoply/data/models/shopping_history.dart';
 import 'package:shoply/data/services/shopping_history_service.dart';
 import 'package:shoply/core/localization/localization_helper.dart';
+import 'package:shoply/presentation/state/lists_provider.dart';
+import 'package:shoply/presentation/state/items_provider.dart';
 
-class ShoppingHistoryScreen extends StatefulWidget {
+class ShoppingHistoryScreen extends ConsumerStatefulWidget {
   const ShoppingHistoryScreen({super.key});
 
   @override
-  State<ShoppingHistoryScreen> createState() => _ShoppingHistoryScreenState();
+  ConsumerState<ShoppingHistoryScreen> createState() => _ShoppingHistoryScreenState();
 }
 
-class _ShoppingHistoryScreenState extends State<ShoppingHistoryScreen> {
+class _ShoppingHistoryScreenState extends ConsumerState<ShoppingHistoryScreen> {
   final _historyService = ShoppingHistoryService();
   List<ShoppingHistory> _history = [];
   bool _isLoading = true;
@@ -136,6 +139,11 @@ class _ShoppingHistoryScreenState extends State<ShoppingHistoryScreen> {
             '${entry.totalItems} ${context.tr('items')} • ${dateFormat.format(entry.completedAt)}',
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
+          trailing: IconButton(
+            icon: const Icon(Icons.add_shopping_cart),
+            onPressed: () => _addEntireShoppingTripToList(context, entry),
+            tooltip: 'Gesamten Einkauf zur Liste hinzufügen',
+          ),
           children: [
             if (entry.items.isNotEmpty)
               Padding(
@@ -170,5 +178,70 @@ class _ShoppingHistoryScreenState extends State<ShoppingHistoryScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _addEntireShoppingTripToList(BuildContext context, ShoppingHistory entry) async {
+    // Get all lists
+    final listsAsync = ref.read(listsNotifierProvider);
+    
+    if (!listsAsync.hasValue || listsAsync.value!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Keine Listen verfügbar. Erstelle zuerst eine Liste.')),
+      );
+      return;
+    }
+    
+    final lists = listsAsync.value!;
+    
+    // Show list selection dialog
+    final selectedList = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Liste auswählen'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: lists.map((list) => ListTile(
+            title: Text(list.name),
+            subtitle: Text('${entry.totalItems} Artikel hinzufügen'),
+            onTap: () => Navigator.pop(context, list.id),
+          )).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Abbrechen'),
+          ),
+        ],
+      ),
+    );
+    
+    if (selectedList == null) return;
+    
+    try {
+      // Add all items from the shopping trip to the selected list
+      for (final item in entry.items) {
+        await ref.read(itemsNotifierProvider(selectedList).notifier).addItem(
+          name: item.name,
+          quantity: item.quantity ?? 1.0,
+          unit: item.unit,
+          category: item.category,
+        );
+      }
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ${entry.totalItems} Artikel zur Liste hinzugefügt'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler: $e')),
+        );
+      }
+    }
   }
 }
