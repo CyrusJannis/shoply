@@ -63,7 +63,31 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: Text(widget.listName, style: AppTextStyles.h2),
+        title: Text(
+          widget.listName,
+          style: AppTextStyles.h2.copyWith(
+            fontWeight: FontWeight.w800,
+            fontSize: 26,
+          ),
+        ),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black,
+          ),
+          child: IconButton(
+            icon: Icon(
+              Icons.arrow_back,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.black
+                  : Colors.white,
+            ),
+            onPressed: () => context.go('/home'),
+          ),
+        ),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
@@ -151,8 +175,10 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                     : [{'category': '', 'items': sortedItems}];
 
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.screenHorizontalPadding,
+                  padding: const EdgeInsets.only(
+                    left: AppDimensions.screenHorizontalPadding,
+                    right: AppDimensions.screenHorizontalPadding,
+                    bottom: 120, // Extra Padding für Navigation Bar
                   ),
                   itemCount: groupedItems.length,
                   itemBuilder: (context, index) {
@@ -194,36 +220,22 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                               ],
                             ),
                           ),
-                        // Category Items with Reorderable List
-                        ReorderableListView(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          buildDefaultDragHandles: false,
-                          onReorder: (oldIndex, newIndex) {
-                            HapticFeedback.mediumImpact();
-                            _reorderItemsInCategory(categoryItems, oldIndex, newIndex);
-                            HapticFeedback.lightImpact();
-                          },
-                          children: categoryItems.asMap().entries.map<Widget>((entry) {
-                            final itemIndex = entry.key;
-                            final item = entry.value;
-                            return ReorderableDelayedDragStartListener(
-                              key: ValueKey(item.id),
-                              index: itemIndex,
-                              child: ItemCard(
-                                item: item,
-                                onTap: () => _showEditItemDialog(context, item),
-                                onCheckedChanged: (checked) {
-                                  ref
-                                      .read(itemsNotifierProvider(widget.listId).notifier)
-                                      .toggleItemChecked(item.id, checked ?? false);
-                                },
-                                onDelete: () {
-                                  ref
-                                      .read(itemsNotifierProvider(widget.listId).notifier)
-                                      .deleteItem(item.id);
-                                },
-                              ),
+                        // Category Items
+                        Column(
+                          children: categoryItems.map<Widget>((item) {
+                            return ItemCard(
+                              item: item,
+                              onTap: () => _showEditItemDialog(context, item),
+                              onCheckedChanged: (checked) {
+                                ref
+                                    .read(itemsNotifierProvider(widget.listId).notifier)
+                                    .toggleItemChecked(item.id, checked ?? false);
+                              },
+                              onDelete: () {
+                                ref
+                                    .read(itemsNotifierProvider(widget.listId).notifier)
+                                    .deleteItem(item.id);
+                              },
                             );
                           }).toList(),
                         ),

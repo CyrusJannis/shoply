@@ -10,6 +10,7 @@ import 'package:shoply/presentation/screens/lists/list_detail_screen.dart';
 import 'package:shoply/presentation/screens/recipes/recipes_screen.dart';
 import 'package:shoply/presentation/screens/recipes/recipe_detail_screen.dart';
 import 'package:shoply/presentation/screens/recipes/add_recipe_screen.dart';
+import 'package:shoply/presentation/screens/offers/offers_screen.dart';
 import 'package:shoply/presentation/screens/profile/profile_screen.dart';
 import 'package:shoply/presentation/screens/main_scaffold.dart';
 import 'package:shoply/data/services/supabase_service.dart';
@@ -110,6 +111,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                 },
               ),
             ],
+          ),
+          GoRoute(
+            path: '/offers',
+            name: 'offers',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const OffersScreen(),
+            ),
           ),
           GoRoute(
             path: '/profile',

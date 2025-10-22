@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:shoply/core/constants/app_config.dart';
+import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
 import 'package:shoply/core/localization/localization_helper.dart';
 import 'package:shoply/presentation/state/lists_provider.dart';
 import 'package:shoply/presentation/widgets/common/empty_state.dart';
 import 'package:shoply/presentation/widgets/common/loading_indicator.dart';
-import 'package:shoply/presentation/widgets/list/list_card.dart';
 
 class ListsScreen extends ConsumerStatefulWidget {
   const ListsScreen({super.key});
@@ -32,18 +29,13 @@ enum SortOption {
 
 class _ListsScreenState extends ConsumerState<ListsScreen> {
   SortOption _currentSort = SortOption.itemsDesc;
-  String _searchQuery = '';
-  final _searchController = TextEditingController();
-  List<dynamic>? _customOrder; // Store custom order when drag & drop is used
 
   @override
   void initState() {
     super.initState();
-    // Reload lists when this screen is opened
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(listsNotifierProvider.notifier).loadLists();
       
-      // Check if we should show create dialog
       final uri = GoRouterState.of(context).uri;
       if (uri.queryParameters['create'] == 'true') {
         _showCreateListDialog(context, ref);
@@ -52,257 +44,332 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final listsAsync = ref.watch(listsNotifierProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('my_lists'), style: AppTextStyles.h2),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => _showSearchDialog(context),
-            tooltip: context.tr('search'),
-          ),
-          PopupMenuButton<SortOption>(
-            icon: const Icon(Icons.sort),
-            tooltip: 'Sort',
-            onSelected: (SortOption option) {
-              setState(() {
-                _currentSort = option;
-              });
-            },
-            itemBuilder: (context) => [
-              for (final option in SortOption.values)
-                PopupMenuItem(
-                  value: option,
-                  child: Row(
-                    children: [
-                      if (_currentSort == option)
-                        const Icon(Icons.check, size: 20)
-                      else
-                        const SizedBox(width: 20),
-                      const SizedBox(width: 8),
-                      Text(option.label),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.group_add),
-            onPressed: () => _showJoinListDialog(context, ref),
-            tooltip: context.tr('join_list'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showCreateListDialog(context, ref),
-            tooltip: context.tr('create_list'),
-          ),
-        ],
-      ),
-      body: listsAsync.when(
-        data: (lists) {
-          if (lists.isEmpty) {
-            return EmptyState(
-              icon: Icons.list_alt,
-              title: 'No lists yet',
-              subtitle: 'Create your first shopping list',
-              actionText: 'Create List',
-              onActionPressed: () => _showCreateListDialog(context, ref),
-            );
-          }
-
-          // Filter lists based on search query
-          var filteredLists = lists;
-          if (_searchQuery.isNotEmpty) {
-            filteredLists = lists.where((list) {
-              return list.name.toLowerCase().contains(_searchQuery.toLowerCase());
-            }).toList();
-          }
-
-          // Show "no results" if search returned nothing
-          if (filteredLists.isEmpty && _searchQuery.isNotEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.search_off, size: 80, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No lists found',
-                    style: AppTextStyles.h2,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'No lists match "$_searchQuery"',
-                    style: AppTextStyles.bodyMedium.copyWith(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _searchQuery = '';
-                        _searchController.clear();
-                      });
-                    },
-                    child: Text(context.tr('clear_search')),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          // Sort lists based on selected option
-          final sortedLists = [...filteredLists];
-          
-          if (_currentSort == SortOption.custom && _customOrder != null) {
-            // Use custom order
-            sortedLists.sort((a, b) {
-              final indexA = _customOrder!.indexWhere((id) => id == a.id);
-              final indexB = _customOrder!.indexWhere((id) => id == b.id);
-              if (indexA == -1) return 1;
-              if (indexB == -1) return -1;
-              return indexA.compareTo(indexB);
-            });
-          } else {
-            // Use standard sorting
-            switch (_currentSort) {
-              case SortOption.custom:
-                // If custom but no order yet, keep original order
-                break;
-              case SortOption.itemsDesc:
-                sortedLists.sort((a, b) => (b.itemCount ?? 0).compareTo(a.itemCount ?? 0));
-                break;
-              case SortOption.itemsAsc:
-                sortedLists.sort((a, b) => (a.itemCount ?? 0).compareTo(b.itemCount ?? 0));
-                break;
-              case SortOption.nameAsc:
-                sortedLists.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-                break;
-              case SortOption.nameDesc:
-                sortedLists.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
-                break;
-            }
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(listsNotifierProvider);
-            },
-            child: ReorderableListView.builder(
-              padding: const EdgeInsets.all(AppDimensions.screenHorizontalPadding),
-              itemCount: sortedLists.length,
-              buildDefaultDragHandles: false,
-              onReorder: (oldIndex, newIndex) {
-                HapticFeedback.mediumImpact();
-                setState(() {
-                  if (newIndex > oldIndex) {
-                    newIndex -= 1;
-                  }
-                  final item = sortedLists.removeAt(oldIndex);
-                  sortedLists.insert(newIndex, item);
-                  
-                  // Switch to custom sort and save the new order
-                  _currentSort = SortOption.custom;
-                  _customOrder = sortedLists.map((list) => list.id).toList();
-                });
-                HapticFeedback.lightImpact();
-              },
-              itemBuilder: (context, index) {
-                final list = sortedLists[index];
-                return ReorderableDelayedDragStartListener(
-                  key: ValueKey(list.id),
-                  index: index,
-                  child: ListCard(
-                    list: list,
-                    onTap: () {
-                      context.go('/lists/${list.id}?name=${Uri.encodeComponent(list.name)}');
-                    },
-                    onDelete: () async {
-                      final confirm = await _showDeleteConfirmation(context, list.name);
-                      if (confirm == true) {
-                        await ref
-                            .read(listsNotifierProvider.notifier)
-                            .deleteList(list.id);
-                      }
-                    },
-                    onShare: () {
-                      _showShareOptions(context, ref, list.id);
-                    },
+      body: Stack(
+        children: [
+          // Background Image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/app_background.jpg',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                // Fallback if image doesn't exist
+                return Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                        Theme.of(context).scaffoldBackgroundColor,
+                      ],
+                    ),
                   ),
                 );
               },
             ),
-          );
-        },
-        loading: () => const LoadingIndicator(message: 'Loading lists...'),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(listsNotifierProvider),
-                child: Text(context.tr('retry')),
+          ),
+          
+          // Main Content Card Overlay
+          SafeArea(
+            child: Column(
+              children: [
+                // Spacer to show background image at top
+                const SizedBox(height: 120),
+                
+                // Main Content Container with rounded top
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF1C1C1E)
+                          : const Color(0xFFF5F5F5), // Leicht grau
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(32),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, -5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Header Section
+                        Padding(
+                          padding: const EdgeInsets.all(AppDimensions.screenHorizontalPadding),
+                          child: Row(
+                            children: [
+                              // Title
+                              Expanded(
+                                child: Text(
+                                  'Meine Listen',
+                                  style: AppTextStyles.h2.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              
+                              // Join List Icon
+                              IconButton(
+                                icon: const Icon(Icons.group_add),
+                                onPressed: () => _showJoinListDialog(context, ref),
+                                tooltip: context.tr('join_list'),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Theme.of(context).cardColor,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                              
+                              const SizedBox(width: 8),
+                              
+                              // Sort Icon
+                              IconButton(
+                                icon: const Icon(Icons.sort),
+                                onPressed: () => _showSortMenu(context),
+                                tooltip: 'Sort',
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Theme.of(context).cardColor,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        // Lists Content
+                        Expanded(
+                          child: listsAsync.when(
+                            data: (lists) {
+                              if (lists.isEmpty) {
+                                return EmptyState(
+                                  icon: Icons.list_alt,
+                                  title: 'No lists yet',
+                                  subtitle: 'Create your first shopping list',
+                                  actionText: 'Create List',
+                                  onActionPressed: () => _showCreateListDialog(context, ref),
+                                );
+                              }
+
+                              // Sort lists
+                              final sortedLists = [...lists];
+                              switch (_currentSort) {
+                                case SortOption.custom:
+                                  break;
+                                case SortOption.itemsDesc:
+                                  sortedLists.sort((a, b) => (b.itemCount ?? 0).compareTo(a.itemCount ?? 0));
+                                  break;
+                                case SortOption.itemsAsc:
+                                  sortedLists.sort((a, b) => (a.itemCount ?? 0).compareTo(b.itemCount ?? 0));
+                                  break;
+                                case SortOption.nameAsc:
+                                  sortedLists.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+                                  break;
+                                case SortOption.nameDesc:
+                                  sortedLists.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+                                  break;
+                              }
+
+                              return RefreshIndicator(
+                                onRefresh: () async {
+                                  ref.invalidate(listsNotifierProvider);
+                                },
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.only(
+                                    left: AppDimensions.screenHorizontalPadding,
+                                    right: AppDimensions.screenHorizontalPadding,
+                                    bottom: 100, // Extra Padding f\u00fcr Navigation Bar
+                                  ),
+                                  itemCount: sortedLists.length,
+                                  itemBuilder: (context, index) {
+                                    final list = sortedLists[index];
+                                    return _buildListCard(context, list);
+                                  },
+                                ),
+                              );
+                            },
+                            loading: () => const LoadingIndicator(message: 'Loading lists...'),
+                            error: (error, stack) => Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                                  const SizedBox(height: 16),
+                                  Text('Error: $error'),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: () => ref.invalidate(listsNotifierProvider),
+                                    child: Text(context.tr('retry')),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Floating Action Button - Top Right (komplett rund)
+          Positioned(
+            top: 50,
+            right: AppDimensions.screenHorizontalPadding,
+            child: Material(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+              shape: const CircleBorder(),
+              elevation: 4,
+              child: InkWell(
+                onTap: () => _showCreateListDialog(context, ref),
+                customBorder: const CircleBorder(),
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.add,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black
+                        : Colors.white,
+                    size: 28,
+                  ),
+                ),
               ),
-            ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListCard(BuildContext context, dynamic list) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppDimensions.spacingMedium),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF2C2C2E)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            context.go('/lists/${list.id}?name=${Uri.encodeComponent(list.name)}');
+          },
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+          child: SizedBox(
+            height: 98, // 56 * 1.75 für die Höhe
+            child: Padding(
+              padding: const EdgeInsets.all(AppDimensions.cardPadding),
+              child: Row(
+                children: [
+                  // List Icon
+                  Container(
+                    width: 56,
+                    height: 56 * 1.75, // 1.75x höher
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white.withOpacity(0.2)
+                          : Colors.black.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.list_alt_rounded,
+                      size: 32,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black87,
+                    ),
+                  ),
+                  
+                  const SizedBox(width: AppDimensions.spacingMedium),
+                  
+                  // List Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          list.name,
+                          style: AppTextStyles.h4.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${list.itemCount ?? 0} Items',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.lightTextSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Arrow Icon
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.lightTextSecondary,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  void _showSearchDialog(BuildContext context) {
-    showDialog(
+  void _showSortMenu(BuildContext context) {
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.tr('search')),
-        content: TextField(
-          controller: _searchController,
-          decoration: const InputDecoration(
-            labelText: 'Search',
-            hintText: 'Enter list name...',
-            prefixIcon: Icon(Icons.search),
-          ),
-          autofocus: true,
-          onSubmitted: (value) {
-            setState(() {
-              _searchQuery = value.trim();
-            });
-            Navigator.pop(context);
-          },
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(AppDimensions.screenHorizontalPadding),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Sort by', style: AppTextStyles.h3),
+            const SizedBox(height: AppDimensions.spacingMedium),
+            for (final option in SortOption.values)
+              ListTile(
+                leading: _currentSort == option
+                    ? const Icon(Icons.check_circle, color: AppColors.lightAccent)
+                    : const Icon(Icons.circle_outlined),
+                title: Text(option.label),
+                onTap: () {
+                  setState(() {
+                    _currentSort = option;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _searchQuery = '';
-                _searchController.clear();
-              });
-              Navigator.pop(context);
-            },
-            child: Text(context.tr('clear')),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _searchQuery = _searchController.text.trim();
-              });
-              Navigator.pop(context);
-            },
-            child: Text(context.tr('search')),
-          ),
-        ],
       ),
     );
   }
@@ -397,7 +464,6 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
               }
 
               try {
-                // Check if input is a link or a code
                 final list = input.startsWith('http')
                     ? await ref.read(listsNotifierProvider.notifier).joinListWithLink(input)
                     : await ref.read(listsNotifierProvider.notifier).joinListWithCode(input.toUpperCase());
@@ -419,188 +485,6 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
               }
             },
             child: Text(context.tr('join')),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<bool?> _showDeleteConfirmation(BuildContext context, String listName) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.tr('delete')),
-        content: Text('${context.tr('delete_list_confirm')} "$listName"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(context.tr('cancel')),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(context.tr('delete')),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showShareOptions(BuildContext context, WidgetRef ref, String listId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.tr('share_list')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(context.tr('generate_share_code_desc')),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () async {
-                try {
-                  final code = await ref
-                      .read(listsNotifierProvider.notifier)
-                      .generateShareCode(listId);
-                  
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    // Get the share link
-                    final shareLink = AppConfig.generateShareLink(code);
-                    
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(context.tr('share_list')),
-                        content: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                context.tr('share_code_label'),
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    SelectableText(
-                                      code,
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 2,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.copy, size: 20),
-                                      onPressed: () {
-                                        Clipboard.setData(ClipboardData(text: code));
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text(context.tr('code_copied'))),
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                context.tr('share_link'),
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade50,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.blue.shade200),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: SelectableText(
-                                        shareLink,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.blue.shade700,
-                                        ),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.copy, size: 20),
-                                      onPressed: () {
-                                        Clipboard.setData(ClipboardData(text: shareLink));
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text(context.tr('link_copied'))),
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                context.tr('code_expires'),
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 20),
-                              Center(
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    Share.share(
-                                      'Join my shopping list!\n\nCode: $code\nLink: $shareLink\n\nOpen the Shoply app and use the code or link to join.',
-                                      subject: 'Join my Shoply list',
-                                    );
-                                  },
-                                  icon: const Icon(Icons.share),
-                                  label: Text(context.tr('share_via')),
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(context.tr('close')),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Icons.qr_code),
-              label: Text(context.tr('generate_share_code_btn')),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(context.tr('cancel')),
           ),
         ],
       ),

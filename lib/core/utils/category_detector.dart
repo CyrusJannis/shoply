@@ -200,6 +200,11 @@ class CategoryDetector {
     return Categories.icons[category] ?? '🌾';
   }
   
+  /// Gets the color for a category
+  static Color getCategoryColor(String category) {
+    return Categories.colors[category] ?? Colors.grey;
+  }
+  
   /// Gets all category names
   static List<String> getAllCategories() {
     return Categories.all;

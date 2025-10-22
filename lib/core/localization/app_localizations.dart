@@ -55,12 +55,11 @@ class AppLocalizations {
   String get sortByQuantity => _localizedValues[locale.languageCode]!['sort_by_quantity']!;
   String get customSort => _localizedValues[locale.languageCode]!['custom_sort']!;
 
-  // Auth
-  String get signIn => _localizedValues[locale.languageCode]!['sign_in']!;
-  String get signUp => _localizedValues[locale.languageCode]!['sign_up']!;
-  String get signOut => _localizedValues[locale.languageCode]!['sign_out']!;
-  String get email => _localizedValues[locale.languageCode]!['email']!;
-  String get password => _localizedValues[locale.languageCode]!['password']!;
+  // What's New
+  String get whatsNewTitle => _localizedValues[locale.languageCode]!['whats_new_title']!;
+  String get whatsNewSubtitle => _localizedValues[locale.languageCode]!['whats_new_subtitle']!;
+  String get getStarted => _localizedValues[locale.languageCode]!['get_started']!;
+  String get forInternalTesters => _localizedValues[locale.languageCode]!['for_internal_testers']!;
 
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
@@ -97,12 +96,11 @@ class AppLocalizations {
       'sort_alphabetically': 'Alphabetical',
       'sort_by_quantity': 'By Quantity',
       'custom_sort': 'Custom (Drag & Drop)',
-      // Auth
-      'sign_in': 'Sign In',
-      'sign_up': 'Sign Up',
-      'sign_out': 'Sign Out',
-      'email': 'Email',
-      'password': 'Password',
+      // What's New
+      'whats_new_title': 'Version 1.1.0 is here!',
+      'whats_new_subtitle': 'Discover the new features',
+      'get_started': 'Get Started!',
+      'for_internal_testers': 'For Internal Testers',
     },
     'de': {
       'app_name': 'Shoply',
@@ -138,12 +136,11 @@ class AppLocalizations {
       'sort_alphabetically': 'Alphabetisch',
       'sort_by_quantity': 'Nach Menge',
       'custom_sort': 'Benutzerdefiniert (Drag & Drop)',
-      // Auth
-      'sign_in': 'Anmelden',
-      'sign_up': 'Registrieren',
-      'sign_out': 'Abmelden',
-      'email': 'E-Mail',
-      'password': 'Passwort',
+      // What's New
+      'whats_new_title': 'Version 1.1.0 ist da!',
+      'whats_new_subtitle': 'Entdecke die neuen Features',
+      'get_started': 'Los geht\'s!',
+      'for_internal_testers': 'Für interne Tester',
     },
   };
 }

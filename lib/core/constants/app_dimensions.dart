@@ -3,20 +3,21 @@ class AppDimensions {
   static const double screenHorizontalPadding = 24.0;
   static const double screenVerticalPadding = 16.0;
 
-  // Card Padding & Margins
-  static const double cardPadding = 16.0;
+  // Card Padding & Margins - Großzügiger für moderne iOS-Ästhetik
+  static const double cardPadding = 20.0;
   static const double cardMargin = 16.0;
   
-  // General Padding
-  static const double paddingSmall = 8.0;
-  static const double paddingMedium = 16.0;
-  static const double paddingLarge = 24.0;
+  // General Padding - Mehr Weißraum
+  static const double paddingSmall = 12.0;
+  static const double paddingMedium = 20.0;
+  static const double paddingLarge = 28.0;
 
-  // Border Radius
-  static const double cardBorderRadius = 16.0;
-  static const double buttonBorderRadius = 12.0;
-  static const double inputBorderRadius = 12.0;
-  static const double bottomSheetBorderRadius = 24.0;
+  // Border Radius - Großzügige Abrundungen für modernen Look
+  static const double cardBorderRadius = 24.0; // Erhöht von 16.0
+  static const double buttonBorderRadius = 16.0; // Erhöht von 12.0
+  static const double inputBorderRadius = 16.0; // Erhöht von 12.0
+  static const double bottomSheetBorderRadius = 32.0; // Erhöht von 24.0
+  static const double modalBorderRadius = 28.0; // Neu für Pop-ups
 
   // Icon Sizes
   static const double iconSizeSmall = 20.0;

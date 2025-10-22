@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shoply/core/localization/app_localizations.dart';
 import 'package:shoply/core/theme/app_theme.dart';
+import 'package:shoply/core/widgets/update_dialog.dart';
 import 'package:shoply/presentation/state/language_provider.dart';
 import 'package:shoply/presentation/state/theme_provider.dart';
 import 'package:shoply/routes/app_router.dart';
@@ -35,6 +36,15 @@ class ShoplyAIApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      // Show update dialog on first launch of new version
+      builder: (context, child) {
+        // Show update dialog for new versions
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          showUpdateDialogIfNeeded(context);
+        });
+
+        return child!;
+      },
     );
   }
 }

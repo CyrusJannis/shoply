@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
+import 'package:shoply/core/constants/app_text_styles.dart';
 
 class AppTheme {
   static ThemeData lightTheme = ThemeData(
@@ -8,6 +9,7 @@ class AppTheme {
     brightness: Brightness.light,
     scaffoldBackgroundColor: AppColors.lightPrimaryBackground,
     primaryColor: AppColors.lightAccent,
+    fontFamily: AppTextStyles.fontFamilyText,
     colorScheme: const ColorScheme.light(
       primary: AppColors.lightAccent,
       secondary: AppColors.lightAccent,
@@ -30,15 +32,22 @@ class AppTheme {
       iconTheme: IconThemeData(color: AppColors.lightTextPrimary),
     ),
     
-    // Card Theme
+    // Card Theme - Sanfte Schatten und großzügige Abrundungen
     cardTheme: CardThemeData(
-      elevation: AppDimensions.elevationLow,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
       ),
       color: AppColors.lightCardBackground,
-      shadowColor: Colors.grey.shade200,
+      shadowColor: AppColors.lightShadow,
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.cardMargin,
+        vertical: AppDimensions.spacingSmall,
+      ),
     ),
+    
+    // Sanfte Schatten für Karten
+    shadowColor: AppColors.lightShadow,
     
     // Input Decoration Theme
     inputDecorationTheme: InputDecorationTheme(
@@ -61,24 +70,34 @@ class AppTheme {
         borderSide: const BorderSide(color: AppColors.error, width: 1),
       ),
       contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.spacingMedium,
-        vertical: AppDimensions.spacingMedium,
+        horizontal: AppDimensions.paddingMedium,
+        vertical: AppDimensions.paddingMedium,
+      ),
+      hintStyle: const TextStyle(
+        color: AppColors.lightTextSecondary,
+        fontWeight: FontWeight.w400,
       ),
     ),
     
-    // Elevated Button Theme
+    // Elevated Button Theme - Sanfte Schatten und moderne Abrundungen
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        elevation: AppDimensions.elevationLow,
+        elevation: 0,
+        shadowColor: AppColors.lightShadow,
         backgroundColor: AppColors.lightAccent,
         foregroundColor: AppColors.lightTextPrimary,
         minimumSize: const Size(double.infinity, AppDimensions.buttonHeightMedium),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.paddingLarge,
+          vertical: AppDimensions.paddingMedium,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.buttonBorderRadius),
         ),
         textStyle: const TextStyle(
-          fontSize: 16,
+          fontSize: 17,
           fontWeight: FontWeight.w600,
+          letterSpacing: -0.4,
         ),
       ),
     ),
@@ -106,13 +125,21 @@ class AppTheme {
       ),
     ),
     
-    // Bottom Navigation Bar Theme
+    // Bottom Navigation Bar Theme - Modern mit Transparenz
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: AppColors.lightCardBackground,
       selectedItemColor: AppColors.lightAccent,
       unselectedItemColor: AppColors.lightTextSecondary,
       type: BottomNavigationBarType.fixed,
-      elevation: 8,
+      elevation: 0,
+      selectedLabelStyle: TextStyle(
+        fontWeight: FontWeight.w600,
+        fontSize: 11,
+      ),
+      unselectedLabelStyle: TextStyle(
+        fontWeight: FontWeight.w500,
+        fontSize: 11,
+      ),
     ),
     
     // Icon Theme
@@ -123,16 +150,39 @@ class AppTheme {
     
     // Divider Theme
     dividerTheme: const DividerThemeData(
-      color: AppColors.lightTextSecondary,
+      color: AppColors.lightDivider,
       thickness: AppDimensions.dividerThickness,
       space: AppDimensions.spacingMedium,
     ),
     
-    // Floating Action Button Theme
+    // Floating Action Button Theme - Sanfte Schatten
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: AppColors.lightAccent,
       foregroundColor: AppColors.lightTextPrimary,
-      elevation: AppDimensions.elevationMedium,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(16)),
+      ),
+    ),
+    
+    // Dialog Theme - Moderne Pop-ups
+    dialogTheme: DialogThemeData(
+      elevation: 0,
+      backgroundColor: AppColors.lightCardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.modalBorderRadius),
+      ),
+    ),
+    
+    // Bottom Sheet Theme
+    bottomSheetTheme: const BottomSheetThemeData(
+      elevation: 0,
+      backgroundColor: AppColors.lightCardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppDimensions.bottomSheetBorderRadius),
+        ),
+      ),
     ),
   );
 
@@ -141,6 +191,7 @@ class AppTheme {
     brightness: Brightness.dark,
     scaffoldBackgroundColor: AppColors.darkPrimaryBackground,
     primaryColor: AppColors.darkAccent,
+    fontFamily: AppTextStyles.fontFamilyText,
     colorScheme: const ColorScheme.dark(
       primary: AppColors.darkAccent,
       secondary: AppColors.darkAccent,
@@ -163,15 +214,22 @@ class AppTheme {
       iconTheme: IconThemeData(color: AppColors.darkTextPrimary),
     ),
     
-    // Card Theme
+    // Card Theme - Sanfte Schatten und großzügige Abrundungen
     cardTheme: CardThemeData(
-      elevation: AppDimensions.elevationLow,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
       ),
       color: AppColors.darkCardBackground,
-      shadowColor: Colors.black.withOpacity(0.3),
+      shadowColor: AppColors.darkShadow,
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.cardMargin,
+        vertical: AppDimensions.spacingSmall,
+      ),
     ),
+    
+    // Sanfte Schatten für Karten
+    shadowColor: AppColors.darkShadow,
     
     // Input Decoration Theme
     inputDecorationTheme: InputDecorationTheme(
@@ -194,24 +252,34 @@ class AppTheme {
         borderSide: const BorderSide(color: AppColors.error, width: 1),
       ),
       contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.spacingMedium,
-        vertical: AppDimensions.spacingMedium,
+        horizontal: AppDimensions.paddingMedium,
+        vertical: AppDimensions.paddingMedium,
+      ),
+      hintStyle: const TextStyle(
+        color: AppColors.darkTextSecondary,
+        fontWeight: FontWeight.w400,
       ),
     ),
     
-    // Elevated Button Theme
+    // Elevated Button Theme - Sanfte Schatten und moderne Abrundungen
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        elevation: AppDimensions.elevationLow,
+        elevation: 0,
+        shadowColor: AppColors.darkShadow,
         backgroundColor: AppColors.darkAccent,
-        foregroundColor: AppColors.darkTextPrimary,
+        foregroundColor: Colors.black,
         minimumSize: const Size(double.infinity, AppDimensions.buttonHeightMedium),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.paddingLarge,
+          vertical: AppDimensions.paddingMedium,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.buttonBorderRadius),
         ),
         textStyle: const TextStyle(
-          fontSize: 16,
+          fontSize: 17,
           fontWeight: FontWeight.w600,
+          letterSpacing: -0.4,
         ),
       ),
     ),
@@ -239,13 +307,21 @@ class AppTheme {
       ),
     ),
     
-    // Bottom Navigation Bar Theme
+    // Bottom Navigation Bar Theme - Modern mit Transparenz
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: AppColors.darkCardBackground,
       selectedItemColor: AppColors.darkAccent,
       unselectedItemColor: AppColors.darkTextSecondary,
       type: BottomNavigationBarType.fixed,
-      elevation: 8,
+      elevation: 0,
+      selectedLabelStyle: TextStyle(
+        fontWeight: FontWeight.w600,
+        fontSize: 11,
+      ),
+      unselectedLabelStyle: TextStyle(
+        fontWeight: FontWeight.w500,
+        fontSize: 11,
+      ),
     ),
     
     // Icon Theme
@@ -256,16 +332,39 @@ class AppTheme {
     
     // Divider Theme
     dividerTheme: const DividerThemeData(
-      color: AppColors.darkTextSecondary,
+      color: AppColors.darkDivider,
       thickness: AppDimensions.dividerThickness,
       space: AppDimensions.spacingMedium,
     ),
     
-    // Floating Action Button Theme
+    // Floating Action Button Theme - Sanfte Schatten
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: AppColors.darkAccent,
-      foregroundColor: AppColors.darkTextPrimary,
-      elevation: AppDimensions.elevationMedium,
+      foregroundColor: Colors.black,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(16)),
+      ),
+    ),
+    
+    // Dialog Theme - Moderne Pop-ups
+    dialogTheme: DialogThemeData(
+      elevation: 0,
+      backgroundColor: AppColors.darkCardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.modalBorderRadius),
+      ),
+    ),
+    
+    // Bottom Sheet Theme
+    bottomSheetTheme: const BottomSheetThemeData(
+      elevation: 0,
+      backgroundColor: AppColors.darkCardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppDimensions.bottomSheetBorderRadius),
+        ),
+      ),
     ),
   );
 }

@@ -32,6 +32,40 @@ class Categories {
     'Kassenbereich',
   ];
 
+  // Category colors mapping
+  static const Map<String, Color> colors = {
+    'Obst und Gemüse': Color(0xFF4CAF50), // Green
+    'Fleisch und Wurst': Color(0xFFF44336), // Red
+    'Backwaren': Color(0xFF8D6E63), // Brown
+    'Blumen und Pflanzen': Color(0xFFE91E63), // Pink
+    'Kühlprodukte': Color(0xFF2196F3), // Blue
+    'Tiefkühlprodukte': Color(0xFF00BCD4), // Cyan
+    'Grundnahrungsmittel': Color(0xFFFF9800), // Orange
+    'Konserven': Color(0xFF9C27B0), // Purple
+    'Gewürze': Color(0xFFFF5722), // Deep Orange
+    'Würzmittel': Color(0xFF795548), // Brown 700
+    'Frühstücksprodukte': Color(0xFFFFEB3B), // Yellow
+    'Süßigkeiten': Color(0xFFE91E63), // Pink
+    'Snacks': Color(0xFF3F51B5), // Indigo
+    'Getränke': Color(0xFF009688), // Teal
+    'Haushaltswaren': Color(0xFF607D8B), // Blue Grey
+    'Reinigungsmittel': Color(0xFF4CAF50), // Green
+    'Papierwaren': Color(0xFF8BC34A), // Light Green
+    'Drogerie': Color(0xFF9C27B0), // Purple
+    'Körperpflege': Color(0xFFE91E63), // Pink
+    'Kosmetik': Color(0xFF3F51B5), // Indigo
+    'Hygieneartikel': Color(0xFF2196F3), // Blue
+    'Babyartikel': Color(0xFFFF9800), // Orange
+    'Tierbedarf': Color(0xFF8D6E63), // Brown
+    'Non-Food': Color(0xFF607D8B), // Blue Grey
+    'Haushaltsgeräte': Color(0xFF9E9E9E), // Grey
+    'Schreibwaren': Color(0xFF3F51B5), // Indigo
+    'Textilien': Color(0xFF795548), // Brown
+    'Spielzeug': Color(0xFFFF5722), // Deep Orange
+    'Saisonartikel': Color(0xFF4CAF50), // Green
+    'Kassenbereich': Color(0xFF2196F3), // Blue
+  };
+
   // Category icons mapping
   static const Map<String, String> icons = {
     'Obst und Gemüse': '🥬',

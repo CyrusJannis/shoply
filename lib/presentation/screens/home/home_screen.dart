@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
 import 'package:shoply/core/localization/localization_helper.dart';
@@ -8,142 +9,326 @@ import 'package:shoply/data/services/supabase_service.dart';
 import 'package:shoply/presentation/screens/history/shopping_history_screen.dart';
 import 'package:shoply/presentation/state/lists_provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = SupabaseService.instance.currentUser;
     final displayName = user?.userMetadata?['display_name'] ?? 'User';
+    final listsAsync = ref.watch(listsNotifierProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '${context.tr('hello')}, $displayName',
-          style: AppTextStyles.h2,
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              // Show notifications
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Notifications coming soon')),
-              );
-            },
-          ),
-        ],
-      ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.screenHorizontalPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Shopping History Widget
-            _buildWidgetCard(
-              context,
-              title: context.tr('shopping_history'),
-              icon: Icons.history,
-              child: Text(context.tr('view_completed_shopping')),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ShoppingHistoryScreen()),
-                );
-              },
-            ),
+            // Spacer für Dynamic Island (1.5x größe)
+            const SizedBox(height: 100), // ~44px Dynamic Island + 1.5x Abstand
             
-            const SizedBox(height: AppDimensions.cardMargin),
-            
-            // Promotional Flyers Widget
-            _buildWidgetCard(
-              context,
-              title: context.tr('current_offers'),
-              icon: Icons.local_offer,
-              child: Text(context.tr('no_active_offers')),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Flyers feature coming soon')),
-                );
-              },
+            // Header with greeting and profile
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimensions.screenHorizontalPadding,
+                0,
+                AppDimensions.screenHorizontalPadding,
+                0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Greeting
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hello, $displayName',
+                          style: AppTextStyles.h2.copyWith(
+                            fontWeight: FontWeight.w800, // Noch fetter
+                            fontSize: 28,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Willkommen zu ShoplyAI',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.lightTextSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Profile Icon
+                  GestureDetector(
+                    onTap: () => context.go('/profile'),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                      ),
+                      child: Icon(
+                        Icons.person,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black
+                            : Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             
             const SizedBox(height: AppDimensions.spacingLarge),
             
-            // Quick Actions
-            Text(context.tr('quick_actions'), style: AppTextStyles.h2),
+            // Lists Section Header
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.screenHorizontalPadding,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Deine Listen',
+                    style: AppTextStyles.h2.copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 26,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => context.go('/lists?create=true'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black,
+                    ),
+                    child: Text(
+                      '+ Neue Liste',
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 17,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
             const SizedBox(height: AppDimensions.spacingMedium),
             
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // Navigate to lists screen with create flag
-                      context.go('/lists?create=true');
-                    },
-                    icon: const Icon(Icons.add),
-                    label: Text(context.tr('create_new_list')),
-                  ),
-                ),
-                const SizedBox(width: AppDimensions.spacingMedium),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      // Scan barcode
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Scanner coming soon')),
+            // Horizontal Lists
+            listsAsync.when(
+              data: (lists) {
+                if (lists.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.screenHorizontalPadding,
+                    ),
+                    child: Container(
+                      height: 140,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Noch keine Listen erstellt',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.lightTextSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                
+                return SizedBox(
+                  height: 140,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.screenHorizontalPadding,
+                    ),
+                    itemCount: lists.length,
+                    itemBuilder: (context, index) {
+                      final list = lists[index];
+                      return _buildListCard(
+                        context,
+                        list.name,
+                        list.itemCount ?? 0,
+                        () => context.go('/lists/${list.id}?name=${Uri.encodeComponent(list.name)}'),
                       );
                     },
-                    icon: const Icon(Icons.qr_code_scanner),
-                    label: Text(context.tr('scan_barcode')),
+                  ),
+                );
+              },
+              loading: () => const SizedBox(
+                height: 140,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (_, __) => Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.screenHorizontalPadding,
+                ),
+                child: Container(
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+                  ),
+                  child: const Center(
+                    child: Text('Fehler beim Laden'),
                   ),
                 ),
-              ],
+              ),
             ),
             
             const SizedBox(height: AppDimensions.spacingLarge),
             
-            // Smart Recommendations
-            Text('You might need...', style: AppTextStyles.h2),
-            const SizedBox(height: AppDimensions.spacingMedium),
-            
-            const Center(
-              child: Text('No recommendations yet'),
+            // Shopping History Section
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.screenHorizontalPadding,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.lightShadow,
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(AppDimensions.cardPadding),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Einkaufshistorie',
+                            style: AppTextStyles.h2.copyWith(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 26,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ShoppingHistoryScreen(),
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            child: Text(
+                              'See all',
+                              style: AppTextStyles.bodyLarge.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 17,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppDimensions.cardPadding,
+                        0,
+                        AppDimensions.cardPadding,
+                        AppDimensions.cardPadding,
+                      ),
+                      child: Text(
+                        'Sie waren noch nicht einkaufen',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.lightTextSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
+            
+            const SizedBox(height: AppDimensions.spacingLarge),
+            
+            // Extra Padding für Navigation Bar
+            const SizedBox(height: 100),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildWidgetCard(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required Widget child,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+  
+  Widget _buildListCard(
+    BuildContext context,
+    String name,
+    int itemCount,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 140, // Gleiche Breite wie Höhe für quadratische Form
+        height: 140,
+        margin: const EdgeInsets.only(right: AppDimensions.spacingMedium),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black,
+          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(AppDimensions.cardPadding),
+          padding: const EdgeInsets.all(AppDimensions.paddingMedium),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(icon),
-                  const SizedBox(width: AppDimensions.spacingSmall),
-                  Text(title, style: AppTextStyles.h3),
-                  const Spacer(),
-                  const Icon(Icons.chevron_right),
-                ],
+              Text(
+                name,
+                style: AppTextStyles.label.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.black
+                      : Colors.white,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: AppDimensions.spacingMedium),
-              child,
+              Text(
+                '$itemCount Items',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.black54
+                      : Colors.white70,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         ),

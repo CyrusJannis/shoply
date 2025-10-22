@@ -308,7 +308,12 @@ class _RecipesScreenState extends State<RecipesScreen> {
                     : RefreshIndicator(
                         onRefresh: _loadRecipes,
                         child: ListView.builder(
-                          padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+                          padding: const EdgeInsets.only(
+                            left: AppDimensions.paddingMedium,
+                            right: AppDimensions.paddingMedium,
+                            top: AppDimensions.paddingMedium,
+                            bottom: 120, // Extra Padding für Navigation Bar
+                          ),
                           itemCount: _filteredRecipes.length,
                           itemBuilder: (context, index) {
                             return _RecipeCard(

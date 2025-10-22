@@ -74,31 +74,32 @@ class ItemCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppDimensions.cardPadding),
             child: Row(
               children: [
-                // Checkbox
-                Checkbox(
-                  value: item.isChecked,
-                  onChanged: onCheckedChanged,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
+                // Category Icon - 1.75x höher
+                Container(
+                  width: 56,
+                  height: 56 * 1.75, // 1.75x höher
+                  decoration: BoxDecoration(
+                    color: item.category != null
+                        ? CategoryDetector.getCategoryColor(item.category!).withOpacity(0.1)
+                        : Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    item.category != null ? CategoryDetector.getCategoryIcon(item.category!) : '📦',
+                    style: const TextStyle(fontSize: 32),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-                
-                const SizedBox(width: AppDimensions.spacingSmall),
-                
-                // Category Icon
-                if (item.category != null) ...[
-                  Text(
-                    CategoryDetector.getCategoryIcon(item.category!),
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                  const SizedBox(width: AppDimensions.spacingSmall),
-                ],
-                
-                // Item Details
+
+                const SizedBox(width: AppDimensions.spacingMedium),
+
+                // Item Details - vertikales Layout
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Name oben links
                       Text(
                         item.name,
                         style: AppTextStyles.bodyLarge.copyWith(
@@ -108,53 +109,17 @@ class ItemCard extends StatelessWidget {
                           color: item.isChecked ? Colors.grey : null,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 4),
-                      
-                      Row(
-                        children: [
-                          // Quantity - display as whole number if it's a whole number
-                          Text(
-                            '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity}${item.unit != null ? ' ${item.unit}' : ''}',
-                            style: AppTextStyles.caption.copyWith(
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          
-                          // Category tag
-                          if (item.category != null) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                item.category!,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ),
-                            ),
-                          ],
-                          
-                          // Diet warning
-                          if (item.isDietWarning) ...[
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.warning_amber,
-                              size: 16,
-                              color: AppColors.warning,
-                            ),
-                          ],
-                        ],
+
+                      // Items-Anzahl unten links
+                      Text(
+                        '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity}${item.unit != null ? ' ${item.unit}' : ''}',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
                       ),
-                      
+
                       // Notes
                       if (item.notes != null && item.notes!.isNotEmpty) ...[
                         const SizedBox(height: 4),
@@ -169,6 +134,15 @@ class ItemCard extends StatelessWidget {
                         ),
                       ],
                     ],
+                  ),
+                ),
+
+                // Checkbox - rechts
+                Checkbox(
+                  value: item.isChecked,
+                  onChanged: onCheckedChanged,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
                   ),
                 ),
               ],

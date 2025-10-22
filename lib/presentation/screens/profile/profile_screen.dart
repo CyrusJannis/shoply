@@ -38,7 +38,12 @@ class ProfileScreen extends ConsumerWidget {
         title: Text(context.tr('profile'), style: AppTextStyles.h2),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(AppDimensions.screenHorizontalPadding),
+        padding: const EdgeInsets.only(
+          left: AppDimensions.screenHorizontalPadding,
+          right: AppDimensions.screenHorizontalPadding,
+          top: AppDimensions.screenHorizontalPadding,
+          bottom: 120, // Extra Padding für Navigation Bar
+        ),
         children: [
           // Profile Section
           Center(
