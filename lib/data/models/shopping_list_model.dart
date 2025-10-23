@@ -13,6 +13,7 @@ class ShoppingListModel extends Equatable {
   final DateTime updatedAt;
   final int? itemCount;
   final int? uncheckedCount;
+  final int? orderIndex;
 
   const ShoppingListModel({
     required this.id,
@@ -27,6 +28,7 @@ class ShoppingListModel extends Equatable {
     required this.updatedAt,
     this.itemCount,
     this.uncheckedCount,
+    this.orderIndex,
   });
 
   factory ShoppingListModel.fromJson(Map<String, dynamic> json) {
@@ -52,6 +54,7 @@ class ShoppingListModel extends Equatable {
       updatedAt: DateTime.parse(json['updated_at'] as String),
       itemCount: itemCount,
       uncheckedCount: json['unchecked_count'] as int?,
+      orderIndex: json['order_index'] as int?,
     );
   }
 
@@ -67,6 +70,7 @@ class ShoppingListModel extends Equatable {
       'sort_mode': sortMode,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'order_index': orderIndex,
     };
   }
 
@@ -83,6 +87,7 @@ class ShoppingListModel extends Equatable {
     DateTime? updatedAt,
     int? itemCount,
     int? uncheckedCount,
+    int? orderIndex,
   }) {
     return ShoppingListModel(
       id: id ?? this.id,
@@ -97,6 +102,7 @@ class ShoppingListModel extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       itemCount: itemCount ?? this.itemCount,
       uncheckedCount: uncheckedCount ?? this.uncheckedCount,
+      orderIndex: orderIndex ?? this.orderIndex,
     );
   }
 
@@ -114,5 +120,6 @@ class ShoppingListModel extends Equatable {
         updatedAt,
         itemCount,
         uncheckedCount,
+        orderIndex,
       ];
 }

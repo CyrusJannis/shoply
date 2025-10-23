@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class Categories {
   static const List<String> all = [
     'Obst und Gemüse',

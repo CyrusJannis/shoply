@@ -17,9 +17,18 @@ class ItemRepository {
         .eq('list_id', listId)
         .order('created_at', ascending: true);
 
-    return (response as List)
+    final items = (response as List)
         .map((json) => ShoppingItemModel.fromJson(json))
         .toList();
+    
+    // Sort by order_index if available, otherwise keep created_at order
+    items.sort((a, b) {
+      final aOrder = a.orderIndex ?? 999999;
+      final bOrder = b.orderIndex ?? 999999;
+      return aOrder.compareTo(bOrder);
+    });
+    
+    return items;
   }
 
   /// Add a new item to a list

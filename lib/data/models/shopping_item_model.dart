@@ -13,6 +13,7 @@ class ShoppingItemModel extends Equatable {
   final String? barcode;
   final String? addedBy;
   final int? sortOrder;
+  final int? orderIndex;
   final DateTime createdAt;
   final DateTime? checkedAt;
   final DateTime updatedAt;
@@ -30,6 +31,7 @@ class ShoppingItemModel extends Equatable {
     this.barcode,
     this.addedBy,
     this.sortOrder,
+    this.orderIndex,
     required this.createdAt,
     this.checkedAt,
     required this.updatedAt,
@@ -49,6 +51,7 @@ class ShoppingItemModel extends Equatable {
       barcode: json['barcode'] as String?,
       addedBy: json['added_by'] as String?,
       sortOrder: json['sort_order'] as int?,
+      orderIndex: json['order_index'] as int?,
       createdAt: DateTime.parse(json['created_at'] as String),
       checkedAt: json['checked_at'] != null
           ? DateTime.parse(json['checked_at'] as String)
@@ -71,6 +74,7 @@ class ShoppingItemModel extends Equatable {
       'barcode': barcode,
       'added_by': addedBy,
       'sort_order': sortOrder,
+      'order_index': orderIndex,
       'created_at': createdAt.toIso8601String(),
       'checked_at': checkedAt?.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -90,6 +94,7 @@ class ShoppingItemModel extends Equatable {
     String? barcode,
     String? addedBy,
     int? sortOrder,
+    int? orderIndex,
     DateTime? createdAt,
     DateTime? checkedAt,
     DateTime? updatedAt,
@@ -107,6 +112,7 @@ class ShoppingItemModel extends Equatable {
       barcode: barcode ?? this.barcode,
       addedBy: addedBy ?? this.addedBy,
       sortOrder: sortOrder ?? this.sortOrder,
+      orderIndex: orderIndex ?? this.orderIndex,
       createdAt: createdAt ?? this.createdAt,
       checkedAt: checkedAt ?? this.checkedAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -127,6 +133,7 @@ class ShoppingItemModel extends Equatable {
         barcode,
         addedBy,
         sortOrder,
+        orderIndex,
         createdAt,
         checkedAt,
         updatedAt,

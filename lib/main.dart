@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+// import 'package:hive_flutter/hive_flutter.dart'; // Commented out for macOS compatibility
 import 'package:shoply/app.dart';
 import 'package:shoply/data/services/supabase_service.dart';
 import 'package:shoply/data/services/native_oauth_service.dart';
@@ -18,15 +18,12 @@ void main() async {
       DeviceOrientation.portraitDown,
     ]);
 
-    // Initialize Hive for local storage
-    await Hive.initFlutter();
-
     // Initialize Supabase
     await SupabaseService.initialize();
-    
+
     // Initialize Native OAuth Service
     await NativeOAuthService.initialize();
-    
+
     // Initialize Product Classifier Service
     await ProductClassifierService.instance.initialize();
 

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
@@ -63,6 +64,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
+        centerTitle: true,
         title: Text(
           widget.listName,
           style: AppTextStyles.h2.copyWith(
@@ -71,21 +73,25 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           ),
         ),
         leading: Container(
-          margin: const EdgeInsets.all(8),
+          margin: const EdgeInsets.fromLTRB(12, 8, 8, 8), // Etwas nach rechts
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Theme.of(context).brightness == Brightness.dark
                 ? Colors.white
                 : Colors.black,
           ),
-          child: IconButton(
-            icon: Icon(
-              Icons.arrow_back,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.black
-                  : Colors.white,
+          child: Center(
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_back,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.black
+                    : Colors.white,
+              ),
+              padding: EdgeInsets.zero, // Kein padding für mittige Ausrichtung
+              constraints: const BoxConstraints(), // Keine default constraints
+              onPressed: () => context.pop(),
             ),
-            onPressed: () => context.go('/home'),
           ),
         ),
         actions: [
@@ -178,10 +184,29 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                   padding: const EdgeInsets.only(
                     left: AppDimensions.screenHorizontalPadding,
                     right: AppDimensions.screenHorizontalPadding,
-                    bottom: 120, // Extra Padding für Navigation Bar
+                    bottom: 100, // Extra Padding für Navigation Bar
                   ),
-                  itemCount: groupedItems.length,
+                  itemCount: groupedItems.length + 1, // +1 für Complete Button
                   itemBuilder: (context, index) {
+                    // Complete Shopping Button am Ende
+                    if (index == groupedItems.length) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 24, bottom: 24),
+                        child: ElevatedButton.icon(
+                          onPressed: () => _completeShoppingTrip(context, ref, items),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.success,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(26), // iOS 18 Style - extrem rund
+                            ),
+                          ),
+                          icon: const Icon(Icons.check_circle),
+                          label: Text(AppLocalizations.of(context).completeShopping),
+                        ),
+                      );
+                    }
+                    
                     final entry = groupedItems[index];
                     final category = entry['category'] as String;
                     final categoryItems = entry['items'] as List<ShoppingItemModel>;
@@ -222,7 +247,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                           ),
                         // Category Items
                         Column(
-                          children: categoryItems.map<Widget>((item) {
+                          children: categoryItems.map((item) {
                             return ItemCard(
                               item: item,
                               onTap: () => _showEditItemDialog(context, item),
@@ -249,37 +274,6 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                 child: Text('Error: $error'),
               ),
             ),
-          ),
-          // Complete Shopping Button at bottom
-          itemsAsync.when(
-            data: (items) {
-              if (items.isEmpty) return const SizedBox.shrink();
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: ElevatedButton.icon(
-                  onPressed: () => _completeShoppingTrip(context, ref, items),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.success,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  icon: const Icon(Icons.check_circle),
-                  label: Text(AppLocalizations.of(context).completeShopping),
-                ),
-              );
-            },
-            loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
           ),
         ],
       ),
@@ -340,8 +334,12 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
     
     switch (_sortMode) {
       case 'custom':
-        // Keep original order (from database sort_order)
-        list.sort((a, b) => (a.sortOrder ?? 0).compareTo(b.sortOrder ?? 0));
+        // Keep original order (from database order_index)
+        list.sort((a, b) {
+          final aOrder = a.orderIndex ?? 999999;
+          final bOrder = b.orderIndex ?? 999999;
+          return aOrder.compareTo(bOrder);
+        });
         break;
       case 'category':
         list.sort((a, b) {

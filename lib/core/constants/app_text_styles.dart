@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 class AppTextStyles {
-  // Font Family - SF Pro für iOS-Look
-  static const String fontFamily = 'SF Pro Display';
-  static const String fontFamilyText = 'SF Pro Text';
+  // Font Family - Satoshi
+  static const String fontFamily = 'Satoshi';
+  static const String fontFamilyText = 'Satoshi';
   
   // Heading Styles - SF Pro Display für große Texte
   static const TextStyle h1 = TextStyle(

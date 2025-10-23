@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:shoply/core/constants/categories.dart';
 import 'package:shoply/data/models/product_category.dart';
 import 'package:shoply/data/services/product_classifier_service.dart';

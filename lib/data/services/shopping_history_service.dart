@@ -74,7 +74,7 @@ class ShoppingHistoryService {
     }
   }
 
-  /// Get recent shopping history (last 5)
+  /// Get recent shopping history (last 3)
   Future<List<ShoppingHistory>> getRecentHistory() async {
     try {
       final userId = _supabase.auth.currentUser?.id;
@@ -85,7 +85,7 @@ class ShoppingHistoryService {
           .select('*, items:shopping_history_items(*)')
           .eq('user_id', userId)
           .order('completed_at', ascending: false)
-          .limit(5);
+          .limit(3);
 
       return (response as List)
           .map((json) => ShoppingHistory.fromJson(json as Map<String, dynamic>))

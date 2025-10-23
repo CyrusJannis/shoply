@@ -67,7 +67,11 @@ class _ShoppingHistoryScreenState extends ConsumerState<ShoppingHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.tr('shopping_history')),
+        centerTitle: true,
+        title: Text(
+          context.tr('shopping_history'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -126,23 +130,40 @@ class _ShoppingHistoryScreenState extends ConsumerState<ShoppingHistoryScreen> {
       onDismissed: (_) => _deleteHistory(entry.id),
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
+        color: Colors.black, // Schwarzer Hintergrund
         child: ExpansionTile(
-          leading: CircleAvatar(
-            backgroundColor: AppColors.info.withOpacity(0.2),
-            child: const Icon(Icons.shopping_cart, color: AppColors.info),
-          ),
+          iconColor: Colors.white,
+          collapsedIconColor: Colors.white,
           title: Text(
             entry.listName,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
           ),
-          subtitle: Text(
-            '${entry.totalItems} ${context.tr('items')} • ${dateFormat.format(entry.completedAt)}',
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          subtitle: Row(
+            children: [
+              Text(
+                '${entry.totalItems} Artikel',
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                dateFormat.format(entry.completedAt),
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
+              ),
+            ],
           ),
-          trailing: IconButton(
-            icon: const Icon(Icons.add_shopping_cart),
-            onPressed: () => _addEntireShoppingTripToList(context, entry),
-            tooltip: 'Gesamten Einkauf zur Liste hinzufügen',
+          trailing: Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.add, color: Colors.black, size: 20),
+              onPressed: () => _addEntireShoppingTripToList(context, entry),
+              tooltip: 'Gesamten Einkauf zur Liste hinzufügen',
+              padding: EdgeInsets.zero,
+            ),
           ),
           children: [
             if (entry.items.isNotEmpty)
@@ -153,7 +174,7 @@ class _ShoppingHistoryScreenState extends ConsumerState<ShoppingHistoryScreen> {
                   children: [
                     Text(
                       context.tr('purchased_items'),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     const SizedBox(height: 8),
                     ...entry.items.map((item) => Padding(
@@ -165,7 +186,7 @@ class _ShoppingHistoryScreenState extends ConsumerState<ShoppingHistoryScreen> {
                               Expanded(
                                 child: Text(
                                   '${item.quantity} ${item.unit ?? ''} ${item.name}',
-                                  style: const TextStyle(fontSize: 14),
+                                  style: const TextStyle(fontSize: 14, color: Colors.white),
                                 ),
                               ),
                             ],
