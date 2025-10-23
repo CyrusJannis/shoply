@@ -71,79 +71,67 @@ class ItemCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(26),
           child: Padding(
-            padding: const EdgeInsets.all(AppDimensions.cardPadding),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimensions.cardPadding,
+              vertical: 12,
+            ),
             child: Row(
               children: [
-                // Category Icon
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: item.category != null
-                        ? CategoryDetector.getCategoryColor(item.category!).withOpacity(0.1)
-                        : Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    item.category != null ? CategoryDetector.getCategoryIcon(item.category!) : '📦',
-                    style: const TextStyle(fontSize: 32),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-
-                const SizedBox(width: AppDimensions.spacingMedium),
-
-                // Item Details - vertikales Layout
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Name oben links
-                      Text(
-                        item.name,
-                        style: AppTextStyles.bodyLarge.copyWith(
-                          decoration: item.isChecked
-                              ? TextDecoration.lineThrough
-                              : null,
-                          color: item.isChecked ? Colors.grey : null,
-                        ),
-                      ),
-
-                      const SizedBox(height: 4),
-
-                      // Items-Anzahl unten links
-                      Text(
-                        '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity}${item.unit != null ? ' ${item.unit}' : ''}',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-
-                      // Notes
-                      if (item.notes != null && item.notes!.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          item.notes!,
-                          style: AppTextStyles.caption.copyWith(
-                            color: Colors.grey.shade500,
-                            fontStyle: FontStyle.italic,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                // Checkbox - rechts
+                // Checkbox - links
                 Checkbox(
                   value: item.isChecked,
                   onChanged: onCheckedChanged,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(4),
                   ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Item Details - horizontal layout
+                Expanded(
+                  child: Row(
+                    children: [
+                      // Name
+                      Expanded(
+                        child: Text(
+                          item.name,
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            decoration: item.isChecked
+                                ? TextDecoration.lineThrough
+                                : null,
+                            color: item.isChecked ? Colors.grey : null,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      
+                      const SizedBox(width: 12),
+                      
+                      // Quantity
+                      Text(
+                        '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity}${item.unit != null ? ' ${item.unit}' : ''}',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Favorite Icon - rechts
+                Icon(
+                  item.notes != null && item.notes!.isNotEmpty
+                      ? Icons.favorite
+                      : Icons.favorite_border,
+                  color: item.notes != null && item.notes!.isNotEmpty
+                      ? AppColors.error
+                      : Colors.grey.shade400,
+                  size: 20,
                 ),
               ],
             ),

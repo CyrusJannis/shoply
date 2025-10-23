@@ -56,20 +56,23 @@ class SupabaseService {
       try {
         print('🔵 Starting Google Sign-In...');
 
-        // For web or iOS, use OAuth flow
+        // Use OAuth flow - Supabase handles the redirect URL automatically
         final response = await client.auth.signInWithOAuth(
           OAuthProvider.google,
-          redirectTo: kIsWeb ? null : 'com.dominik.shoply://login-callback',
         );
 
         return response; // Returns bool indicating if OAuth flow was initiated
       } catch (e) {
         print('🔴 Google Sign-In Error: $e');
+        // Check if it's a configuration error
+        if (e.toString().contains('validation_failed') || e.toString().contains('OAuth secret')) {
+          throw Exception('Google Sign-In ist noch nicht konfiguriert. Bitte verwenden Sie Email/Passwort.');
+        }
         rethrow;
       }
     } else {
       // For macOS or other platforms, show unsupported message
-      throw Exception('Google Sign-In is not supported on this platform. Please use email/password sign-in.');
+      throw Exception('Google Sign-In wird auf dieser Plattform nicht unterstützt. Bitte verwenden Sie Email/Passwort.');
     }
   }
 
@@ -85,10 +88,14 @@ class SupabaseService {
         return response; // Returns bool indicating if OAuth flow was initiated
       } catch (e) {
         print('Apple Sign-In Error: $e');
+        // Check if it's a configuration error
+        if (e.toString().contains('validation_failed') || e.toString().contains('OAuth secret')) {
+          throw Exception('Apple Sign-In ist noch nicht konfiguriert. Bitte verwenden Sie Email/Passwort.');
+        }
         rethrow;
       }
     } else {
-      throw Exception('Apple Sign-In is only available on iOS devices.');
+      throw Exception('Apple Sign-In ist nur auf iOS-Geräten verfügbar.');
     }
   }
 

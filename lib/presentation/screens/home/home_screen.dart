@@ -162,6 +162,11 @@ class HomeScreen extends ConsumerWidget {
                   );
                 }
                 
+                // Listen nach Item-Anzahl sortieren (meiste zuerst)
+                final sortedLists = [...lists]..sort((a, b) => 
+                  (b.itemCount ?? 0).compareTo(a.itemCount ?? 0)
+                );
+                
                 return SizedBox(
                   height: 140 * 1.75, // Angepasste Höhe für größere Karten
                   child: ListView.builder(
@@ -169,9 +174,9 @@ class HomeScreen extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppDimensions.screenHorizontalPadding,
                     ),
-                    itemCount: lists.length,
+                    itemCount: sortedLists.length,
                     itemBuilder: (context, index) {
-                      final list = lists[index];
+                      final list = sortedLists[index];
                       return _buildListCard(
                         context,
                         list.id,

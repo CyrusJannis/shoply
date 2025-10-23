@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:go_router/go_router.dart';
 import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
@@ -129,18 +130,30 @@ class _LoginScreenState extends State<LoginScreen> {
                       return const Icon(
                         Icons.shopping_bag,
                         size: 80,
-                        color: AppColors.lightAccent,
+                        color: AppColors.accentBlue,
                       );
                     },
                   ),
                   const SizedBox(height: AppDimensions.spacingMedium),
                   
-                  Text(
-                    'Shoply',
-                    style: AppTextStyles.h1.copyWith(
-                      color: AppColors.lightAccent,
-                    ),
+                  RichText(
                     textAlign: TextAlign.center,
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'Shoply',
+                          style: AppTextStyles.h1.copyWith(
+                            color: Colors.black,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'AI',
+                          style: AppTextStyles.h1.copyWith(
+                            color: AppColors.accentBlue,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   
                   const SizedBox(height: AppDimensions.spacingSmall),
@@ -200,11 +213,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Sign In Button
                   ElevatedButton(
                     onPressed: _isLoading ? null : _signIn,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentBlue,
+                      foregroundColor: Colors.white,
+                    ),
                     child: _isLoading
                         ? const SizedBox(
                             height: 20,
                             width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Sign In'),
                   ),
@@ -246,6 +266,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     label: const Text('Continue with Google'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: AppColors.accentBlue, width: 1.5),
+                      backgroundColor: AppColors.lightCardBackground,
                     ),
                   ),
                   
@@ -260,6 +282,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       backgroundColor: Colors.black,
                       foregroundColor: Colors.white,
+                      side: BorderSide.none,
                     ),
                   ),
                   
@@ -277,7 +300,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: _isLoading ? null : () {
                           context.go('/signup');
                         },
-                        child: const Text('Sign Up'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.accentBlue,
+                        ),
+                        child: const Text(
+                          'Sign Up',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),

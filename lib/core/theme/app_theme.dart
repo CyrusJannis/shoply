@@ -63,7 +63,7 @@ class AppTheme {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppDimensions.inputBorderRadius),
-        borderSide: const BorderSide(color: AppColors.lightAccent, width: 2),
+        borderSide: const BorderSide(color: AppColors.accentBlue, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppDimensions.inputBorderRadius),
@@ -245,7 +245,7 @@ class AppTheme {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppDimensions.inputBorderRadius),
-        borderSide: const BorderSide(color: AppColors.darkAccent, width: 2),
+        borderSide: const BorderSide(color: AppColors.accentBlue, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppDimensions.inputBorderRadius),

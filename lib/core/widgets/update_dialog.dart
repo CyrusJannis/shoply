@@ -173,11 +173,14 @@ Future<void> showUpdateDialogIfNeeded(BuildContext context) async {
   // Show dialog only for new versions
   if (currentVersion != lastSeenVersion) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      showDialog(
-        context: context,
-        barrierDismissible: false, // Must interact with dialog
-        builder: (context) => const UpdateDialog(),
-      );
+      // Check if the context is still valid and has a Navigator
+      if (context.mounted && Navigator.maybeOf(context) != null) {
+        showDialog(
+          context: context,
+          barrierDismissible: false, // Must interact with dialog
+          builder: (context) => const UpdateDialog(),
+        );
+      }
     });
   }
 }
