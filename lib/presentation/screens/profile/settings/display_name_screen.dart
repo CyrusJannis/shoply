@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/presentation/state/auth_provider.dart';
-import 'package:shoply/data/services/supabase_service.dart';
 import 'package:shoply/core/localization/localization_helper.dart';
 
 class DisplayNameScreen extends ConsumerStatefulWidget {

@@ -78,9 +78,9 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
             child: Column(
               children: [
                 // Spacer to show background image at top
-                const SizedBox(height: 120),
+                const SizedBox(height: 180),
                 
-                // Main Content Container with rounded top
+                // Main Content Container with rounded top corners
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
@@ -164,6 +164,7 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
                               final sortedLists = [...lists];
                               switch (_currentSort) {
                                 case SortOption.custom:
+                                  // Use order_index from database
                                   break;
                                 case SortOption.itemsDesc:
                                   sortedLists.sort((a, b) => (b.itemCount ?? 0).compareTo(a.itemCount ?? 0));
@@ -183,13 +184,29 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
                                 onRefresh: () async {
                                   ref.invalidate(listsNotifierProvider);
                                 },
-                                child: ListView.builder(
-                                  padding: const EdgeInsets.only(
-                                    left: AppDimensions.screenHorizontalPadding,
-                                    right: AppDimensions.screenHorizontalPadding,
-                                    bottom: 100, // Extra Padding f\u00fcr Navigation Bar
-                                  ),
-                                  itemCount: sortedLists.length,
+                                child: _currentSort == SortOption.custom
+                                    ? ReorderableListView.builder(
+                                        padding: const EdgeInsets.only(
+                                          left: AppDimensions.screenHorizontalPadding,
+                                          right: AppDimensions.screenHorizontalPadding,
+                                          bottom: 100,
+                                        ),
+                                        itemCount: sortedLists.length,
+                                        onReorder: (oldIndex, newIndex) async {
+                                          await ref.read(listsNotifierProvider.notifier).reorderLists(oldIndex, newIndex);
+                                        },
+                                        itemBuilder: (context, index) {
+                                          final list = sortedLists[index];
+                                          return _buildListCard(context, list);
+                                        },
+                                      )
+                                    : ListView.builder(
+                                        padding: const EdgeInsets.only(
+                                          left: AppDimensions.screenHorizontalPadding,
+                                          right: AppDimensions.screenHorizontalPadding,
+                                          bottom: 100,
+                                        ),
+                                        itemCount: sortedLists.length,
                                   itemBuilder: (context, index) {
                                     final list = sortedLists[index];
                                     return _buildListCard(context, list);
@@ -257,86 +274,68 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
   }
 
   Widget _buildListCard(BuildContext context, dynamic list) {
+    const baseHeight = 98.0; // Aktuelle Höhe als Basis
+    final cardHeight = baseHeight * 1.75; // 1.75x höher
+    
     return Container(
+      key: Key(list.id), // Key für ReorderableListView
       margin: const EdgeInsets.only(bottom: AppDimensions.spacingMedium),
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF2C2C2E)
-            : Colors.white,
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white // Dark Mode: Weiß
+                : Colors.black, // Light Mode: Schwarz
+            borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            context.go('/lists/${list.id}?name=${Uri.encodeComponent(list.name)}');
-          },
-          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                context.push('/lists/${list.id}?name=${Uri.encodeComponent(list.name)}');
+              },
+              borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
           child: SizedBox(
-            height: 98, // 56 * 1.75 für die Höhe
+            height: cardHeight,
             child: Padding(
               padding: const EdgeInsets.all(AppDimensions.cardPadding),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // List Icon
-                  Container(
-                    width: 56,
-                    height: 56 * 1.75, // 1.75x höher
-                    decoration: BoxDecoration(
+                  // List Name oben links
+                  Text(
+                    list.name,
+                    style: AppTextStyles.h4.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white.withOpacity(0.2)
-                          : Colors.black.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                          ? Colors.black // Dark Mode: Schwarz
+                          : Colors.white, // Light Mode: Weiß
                     ),
-                    child: Icon(
-                      Icons.list_alt_rounded,
-                      size: 32,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  // Item count unten links
+                  Text(
+                    '${list.itemCount ?? 0} Items',
+                    style: AppTextStyles.bodySmall.copyWith(
                       color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black87,
+                          ? Colors.black54 // Dark Mode: Schwarz (transparent)
+                          : Colors.white70, // Light Mode: Weiß (transparent)
                     ),
-                  ),
-                  
-                  const SizedBox(width: AppDimensions.spacingMedium),
-                  
-                  // List Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          list.name,
-                          style: AppTextStyles.h4.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${list.itemCount ?? 0} Items',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.lightTextSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // Arrow Icon
-                  const Icon(
-                    Icons.chevron_right,
-                    color: AppColors.lightTextSecondary,
                   ),
                 ],
               ),
+            ),
+          ),
             ),
           ),
         ),

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
+// import 'package:image_picker/image_picker.dart'; // Disabled for macOS compatibility
 import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
@@ -18,7 +18,7 @@ class AddRecipeScreen extends StatefulWidget {
 class _AddRecipeScreenState extends State<AddRecipeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _recipeService = RecipeService();
-  final _imagePicker = ImagePicker();
+  // final _imagePicker = ImagePicker(); // Disabled for macOS compatibility
 
   // Form controllers
   final _nameController = TextEditingController();
@@ -298,16 +298,20 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1920,
-      maxHeight: 1080,
-      imageQuality: 85,
+    // Image picker disabled for macOS compatibility
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Image picker not available on macOS')),
     );
-
-    if (image != null) {
-      setState(() => _selectedImage = File(image.path));
-    }
+    // final XFile? image = await _imagePicker.pickImage(
+    //   source: ImageSource.gallery,
+    //   maxWidth: 1920,
+    //   maxHeight: 1080,
+    //   imageQuality: 85,
+    // );
+    //
+    // if (image != null) {
+    //   setState(() => _selectedImage = File(image.path));
+    // }
   }
 
   Future<void> _saveRecipe() async {

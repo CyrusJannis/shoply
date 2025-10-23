@@ -5,7 +5,6 @@ import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
 import 'package:shoply/core/utils/validators.dart';
 import 'package:shoply/data/services/supabase_service.dart';
-import 'package:shoply/data/services/native_oauth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -61,10 +60,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      final response = await SupabaseService.instance.signInWithGoogle();
-      if (response.user != null && mounted) {
+      final success = await SupabaseService.instance.signInWithGoogle();
+      if (success && mounted) {
         // Navigation is handled by auth state listener in router
-        print('✅ User logged in: ${response.user!.email}');
+        print('✅ Google OAuth flow initiated');
       }
     } catch (e) {
       if (mounted) {

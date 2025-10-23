@@ -80,48 +80,48 @@ class MainScaffold extends StatelessWidget {
                   padding: const EdgeInsets.only(
                     left: AppDimensions.paddingSmall,
                     right: AppDimensions.paddingSmall,
-                    top: 4, // Noch kleinerer oberer Abstand
-                    bottom: 16, // Noch größerer unterer Abstand
+                    top: 12, // Gleicher Abstand oben und unten
+                    bottom: 12, // Gleicher Abstand oben und unten
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildNavItem(
                         context,
-                        icon: Icons.home_outlined,
-                        activeIcon: Icons.home_rounded,
+                        icon: Icons.house_outlined,
+                        activeIcon: Icons.house,
                         label: context.tr('home'),
                         index: 0,
                         isSelected: selectedIndex == 0,
                       ),
                       _buildNavItem(
                         context,
-                        icon: Icons.list_alt_outlined,
-                        activeIcon: Icons.list_alt_rounded,
+                        icon: Icons.checklist_outlined,
+                        activeIcon: Icons.checklist,
                         label: context.tr('lists'),
                         index: 1,
                         isSelected: selectedIndex == 1,
                       ),
                       _buildNavItem(
                         context,
-                        icon: Icons.restaurant_menu_outlined,
-                        activeIcon: Icons.restaurant_menu_rounded,
+                        icon: Icons.menu_book_outlined,
+                        activeIcon: Icons.menu_book,
                         label: context.tr('recipes'),
                         index: 2,
                         isSelected: selectedIndex == 2,
                       ),
                       _buildNavItem(
                         context,
-                        icon: Icons.local_offer_outlined,
-                        activeIcon: Icons.local_offer_rounded,
-                        label: 'Angebote',
+                        icon: Icons.shopping_bag_outlined,
+                        activeIcon: Icons.shopping_bag,
+                        label: context.tr('stores'),
                         index: 3,
                         isSelected: selectedIndex == 3,
                       ),
                       _buildNavItem(
                         context,
-                        icon: Icons.person_outline_rounded,
-                        activeIcon: Icons.person_rounded,
+                        icon: Icons.person_outline,
+                        activeIcon: Icons.person,
                         label: context.tr('profile'),
                         index: 4,
                         isSelected: selectedIndex == 4,
@@ -158,20 +158,20 @@ class MainScaffold extends StatelessWidget {
         onTap: () => _onItemTapped(context, index),
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 6),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 isSelected ? activeIcon : icon,
                 color: color,
-                size: isSelected ? 26 : 24,
+                size: isSelected ? 30 : 28, // Noch größer
               ),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12, // Noch größer
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: color,
                 ),

@@ -115,6 +115,36 @@ class ListsNotifier extends StateNotifier<AsyncValue<List<ShoppingListModel>>> {
       rethrow;
     }
   }
+
+  Future<void> reorderLists(int oldIndex, int newIndex) async {
+    final currentState = state;
+    if (!currentState.hasValue) return;
+    
+    final lists = List<ShoppingListModel>.from(currentState.value!);
+    
+    // Adjust newIndex if moving down
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    
+    // Move the item
+    final item = lists.removeAt(oldIndex);
+    lists.insert(newIndex, item);
+    
+    // Update state immediately for smooth UI
+    state = AsyncValue.data(lists);
+    
+    // Update order in database
+    try {
+      for (int i = 0; i < lists.length; i++) {
+        await _repository.updateList(lists[i].id, {'order_index': i});
+      }
+    } catch (error) {
+      // Reload if update fails
+      await loadLists();
+      rethrow;
+    }
+  }
 }
 
 /// Lists state notifier provider

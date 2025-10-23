@@ -57,9 +57,18 @@ class ListRepository {
       print('DEBUG: List "${list['name']}" - owner_id: ${list['owner_id']}');
     }
 
-    return allLists
+    final lists = allLists
         .map((json) => ShoppingListModel.fromJson(json))
         .toList();
+    
+    // Sort by order_index (nulls last)
+    lists.sort((a, b) {
+      final aOrder = a.orderIndex ?? 999999;
+      final bOrder = b.orderIndex ?? 999999;
+      return aOrder.compareTo(bOrder);
+    });
+    
+    return lists;
   }
 
   /// Get a single list by ID

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:shoply/core/constants/app_colors.dart';
 
 class OAuthWebViewDialog extends StatefulWidget {
@@ -19,108 +19,102 @@ class OAuthWebViewDialog extends StatefulWidget {
 }
 
 class _OAuthWebViewDialogState extends State<OAuthWebViewDialog> {
-  late final WebViewController _controller;
-  bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
-    _initializeWebView();
-  }
-
-  void _initializeWebView() {
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (String url) {
-            print('WebView: Page started loading: $url');
-            
-            // Check if this is a redirect URL
-            if (url.startsWith(widget.redirectScheme)) {
-              print('WebView: Detected redirect: $url');
-              Navigator.of(context).pop();
-              widget.onRedirect(url);
-            }
-          },
-          onPageFinished: (String url) {
-            print('WebView: Page finished loading: $url');
-            setState(() => _isLoading = false);
-          },
-          onWebResourceError: (WebResourceError error) {
-            print('WebView: Error: ${error.description}');
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(widget.authUrl));
+    // Only initialize if webview is supported on this platform
+    if (kIsWeb || defaultTargetPlatform == TargetPlatform.iOS) {
+      // WebView initialization would go here for supported platforms
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: Container(
-        width: 600,
-        height: 700,
-        decoration: BoxDecoration(
-          color: AppColors.lightCardBackground,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.info,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
+    // Check if WebView is supported on this platform
+    if (kIsWeb || defaultTargetPlatform == TargetPlatform.iOS) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 600,
+          height: 700,
+          decoration: BoxDecoration(
+            color: AppColors.lightCardBackground,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.info,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
                 ),
-              ),
-              child: Row(
-                children: [
-                  const Text(
-                    'Sign in with Google',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-            
-            // WebView
-            Expanded(
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(16),
-                      bottomRight: Radius.circular(16),
-                    ),
-                    child: WebViewWidget(controller: _controller),
-                  ),
-                  if (_isLoading)
-                    Container(
-                      color: AppColors.lightCardBackground,
-                      child: const Center(
-                        child: CircularProgressIndicator(),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Sign in with Google',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                ],
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+
+              // WebView placeholder for unsupported platforms
+              Expanded(
+                child: Container(
+                  color: AppColors.lightCardBackground,
+                  child: const Center(
+                    child: Text(
+                      'WebView not supported on this platform.\nPlease use email/password sign-in.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // For unsupported platforms, show a message
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 400,
+          height: 200,
+          decoration: BoxDecoration(
+            color: AppColors.lightCardBackground,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Center(
+            child: Text(
+              'OAuth not supported on this platform.\nPlease use email/password sign-in.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
               ),
             ),
-          ],
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 }

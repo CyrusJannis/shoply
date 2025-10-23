@@ -31,7 +31,7 @@ class ItemCard extends StatelessWidget {
         padding: const EdgeInsets.only(right: AppDimensions.cardPadding),
         decoration: BoxDecoration(
           color: AppColors.error,
-          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+          borderRadius: BorderRadius.circular(26),
         ),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
@@ -62,22 +62,22 @@ class ItemCard extends StatelessWidget {
       child: Card(
         margin: const EdgeInsets.only(bottom: AppDimensions.spacingSmall),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+          borderRadius: BorderRadius.circular(26), // iOS 18 Style - extrem rund
           side: item.isDietWarning
               ? const BorderSide(color: AppColors.warning, width: 2)
               : BorderSide.none,
         ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+          borderRadius: BorderRadius.circular(26),
           child: Padding(
             padding: const EdgeInsets.all(AppDimensions.cardPadding),
             child: Row(
               children: [
-                // Category Icon - 1.75x höher
+                // Category Icon
                 Container(
-                  width: 56,
-                  height: 56 * 1.75, // 1.75x höher
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: item.category != null
                         ? CategoryDetector.getCategoryColor(item.category!).withOpacity(0.1)
