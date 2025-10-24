@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
-import 'package:shoply/core/utils/category_detector.dart';
 import 'package:shoply/data/models/shopping_item_model.dart';
 
 class ItemCard extends StatelessWidget {

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<actions>
+    <!-- Add Item to Shopping List Action -->
+    <action intentName="actions.intent.CREATE_THING">
+        <fulfillment urlTemplate="shoply://addItem?itemName={thing.name}&amp;listName={list.name}">
+            <parameter-mapping
+                intentParameter="thing.name"
+                urlParameter="itemName" />
+            <parameter-mapping
+                intentParameter="list.name"
+                urlParameter="listName" />
+        </fulfillment>
+        
+        <entity-set-reference entitySetId="ItemEntitySet" />
+        <entity-set-reference entitySetId="ListEntitySet" />
+    </action>
+
+    <!-- Create Shopping List Action -->
+    <action intentName="actions.intent.CREATE_THING">
+        <fulfillment urlTemplate="shoply://createList?listName={thing.name}">
+            <parameter-mapping
+                intentParameter="thing.name"
+                urlParameter="listName" />
+        </fulfillment>
+        
+        <entity-set-reference entitySetId="ListEntitySet" />
+    </action>
+
+    <!-- View Shopping List Action -->
+    <action intentName="actions.intent.OPEN_APP_FEATURE">
+        <fulfillment urlTemplate="shoply://viewList?listName={feature.name}">
+            <parameter-mapping
+                intentParameter="feature.name"
+                urlParameter="listName" />
+        </fulfillment>
+        
+        <entity-set-reference entitySetId="ListEntitySet" />
+    </action>
+
+    <!-- Entity Sets -->
+    <entity-set entitySetId="ItemEntitySet">
+        <entity
+            identifier="milk"
+            name="@string/item_milk" />
+        <entity
+            identifier="bread"
+            name="@string/item_bread" />
+        <entity
+            identifier="eggs"
+            name="@string/item_eggs" />
+        <!-- Add more common items -->
+    </entity-set>
+
+    <entity-set entitySetId="ListEntitySet">
+        <entity
+            identifier="shopping"
+            name="@string/list_shopping" />
+        <entity
+            identifier="groceries"
+            name="@string/list_groceries" />
+        <!-- Add more list types -->
+    </entity-set>
+</actions>

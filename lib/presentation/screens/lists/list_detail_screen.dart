@@ -13,13 +13,16 @@ import 'package:shoply/core/utils/category_detector.dart';
 import 'package:shoply/core/utils/diet_checker.dart';
 import 'package:shoply/data/models/shopping_item_model.dart';
 import 'package:shoply/data/services/shopping_history_service.dart';
+import 'package:shoply/data/services/purchase_tracking_service.dart';
 import 'package:shoply/data/services/supabase_service.dart';
 import 'package:shoply/presentation/state/auth_provider.dart';
 import 'package:shoply/presentation/state/items_provider.dart';
 import 'package:shoply/presentation/state/lists_provider.dart';
+import 'package:shoply/presentation/state/last_list_provider.dart';
 import 'package:shoply/presentation/widgets/common/empty_state.dart';
 import 'package:shoply/presentation/widgets/common/loading_indicator.dart';
-import 'package:shoply/presentation/widgets/list/item_card.dart';
+import 'package:shoply/presentation/widgets/list/shopping_item_grid_card.dart';
+import 'package:shoply/presentation/widgets/recommendations/recommendations_section.dart';
 import 'package:share_plus/share_plus.dart';
 
 class ListDetailScreen extends ConsumerStatefulWidget {
@@ -47,6 +50,8 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
     // Reload items when entering the list
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(itemsNotifierProvider(widget.listId).notifier).loadItems();
+      // Track this list as last accessed
+      ref.read(lastAccessedListProvider.notifier).setLastAccessedList(widget.listId);
     });
   }
 
@@ -95,6 +100,12 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           ),
         ),
         actions: [
+          // View All Lists button
+          IconButton(
+            icon: const Icon(Icons.view_list_rounded),
+            tooltip: 'View All Lists',
+            onPressed: () => context.push('/home'),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
@@ -186,10 +197,20 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                     right: AppDimensions.screenHorizontalPadding,
                     bottom: 100, // Extra Padding für Navigation Bar
                   ),
-                  itemCount: groupedItems.length + 1, // +1 für Complete Button
+                  itemCount: groupedItems.length + 2, // +1 for recommendations, +1 for Complete Button
                   itemBuilder: (context, index) {
+                    // Recommendations Section at the top
+                    if (index == 0) {
+                      return RecommendationsSection(
+                        currentItems: items,
+                        onAddItem: (itemName, category, quantity) {
+                          _addItemFromRecommendation(itemName, category, quantity);
+                        },
+                      );
+                    }
+                    
                     // Complete Shopping Button am Ende
-                    if (index == groupedItems.length) {
+                    if (index == groupedItems.length + 1) {
                       return Padding(
                         padding: const EdgeInsets.only(top: 24, bottom: 24),
                         child: ElevatedButton.icon(
@@ -207,7 +228,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                       );
                     }
                     
-                    final entry = groupedItems[index];
+                    final entry = groupedItems[index - 1]; // -1 because recommendations is at index 0
                     final category = entry['category'] as String;
                     final categoryItems = entry['items'] as List<ShoppingItemModel>;
                     final icon = CategoryDetector.getCategoryIcon(category);
@@ -224,9 +245,10 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                             ),
                             child: Row(
                               children: [
-                                Text(
+                                Icon(
                                   icon,
-                                  style: const TextStyle(fontSize: 20),
+                                  size: 24,
+                                  color: CategoryDetector.getCategoryColor(category),
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
@@ -245,10 +267,21 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                               ],
                             ),
                           ),
-                        // Category Items
-                        Column(
-                          children: categoryItems.map((item) {
-                            return ItemCard(
+                        // Category Items - Grid Layout
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: EdgeInsets.zero,
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 1.3,
+                          ),
+                          itemCount: categoryItems.length,
+                          itemBuilder: (context, itemIndex) {
+                            final item = categoryItems[itemIndex];
+                            return ShoppingItemGridCard(
                               item: item,
                               onTap: () => _showEditItemDialog(context, item),
                               onCheckedChanged: (checked) {
@@ -262,7 +295,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                                     .deleteItem(item.id);
                               },
                             );
-                          }).toList(),
+                          },
                         ),
                       ],
                     );
@@ -787,6 +820,37 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
     );
   }
 
+  Future<void> _addItemFromRecommendation(
+    String? itemName,
+    String? category,
+    double? quantity,
+  ) async {
+    if (itemName == null || itemName.isEmpty) return;
+    
+    try {
+      await ref.read(itemsNotifierProvider(widget.listId).notifier).addItem(
+        name: itemName,
+        quantity: quantity ?? 1.0,
+        category: category,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$itemName zur Liste hinzugefügt'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _completeShoppingTrip(
     BuildContext context,
     WidgetRef ref,
@@ -838,6 +902,15 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
         listName: widget.listName,
         items: checkedItems,
       );
+
+      // Track purchases for recommendations
+      try {
+        final trackingService = PurchaseTrackingService();
+        await trackingService.trackPurchases(checkedItems);
+      } catch (e) {
+        // Log but don't fail the whole operation if tracking fails
+        debugPrint('Purchase tracking failed: $e');
+      }
 
       // Delete only checked items from the list
       final itemIds = checkedItems.map((item) => item.id).toList();

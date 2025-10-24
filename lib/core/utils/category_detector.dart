@@ -196,9 +196,9 @@ class CategoryDetector {
     return matrix[len1][len2];
   }
   
-  /// Gets the icon emoji for a category
-  static String getCategoryIcon(String category) {
-    return Categories.icons[category] ?? '🌾';
+  /// Gets the icon for a category
+  static IconData getCategoryIcon(String category) {
+    return Categories.icons[category] ?? Icons.grain_rounded;
   }
   
   /// Gets the color for a category

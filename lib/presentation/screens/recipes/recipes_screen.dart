@@ -1,28 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
 import 'package:shoply/data/models/recipe.dart';
 import 'package:shoply/data/services/recipe_service.dart';
 import 'package:shoply/core/localization/localization_helper.dart';
+import 'package:shoply/presentation/state/recipe_filter_provider.dart';
+import 'package:shoply/presentation/widgets/recipes/quick_filters_row.dart';
+import 'package:shoply/presentation/widgets/recipes/advanced_filters_modal.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-class RecipesScreen extends StatefulWidget {
+class RecipesScreen extends ConsumerStatefulWidget {
   const RecipesScreen({super.key});
 
   @override
-  State<RecipesScreen> createState() => _RecipesScreenState();
+  ConsumerState<RecipesScreen> createState() => _RecipesScreenState();
 }
 
-class _RecipesScreenState extends State<RecipesScreen> {
+class _RecipesScreenState extends ConsumerState<RecipesScreen> {
   final _recipeService = RecipeService();
   List<Recipe> _recipes = [];
-  List<Recipe> _filteredRecipes = [];
   bool _isLoading = true;
   String _searchQuery = '';
-  Set<String> _selectedFilters = {};
-  String _sortBy = 'newest'; // newest, oldest, rating-high, rating-low
+  String _sortBy = 'newest';
 
   @override
   void initState() {
@@ -36,10 +37,8 @@ class _RecipesScreenState extends State<RecipesScreen> {
       final recipes = await _recipeService.getRecipes();
       setState(() {
         _recipes = recipes;
-        _filteredRecipes = recipes;
         _isLoading = false;
       });
-      _applyFilter();
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
@@ -50,172 +49,38 @@ class _RecipesScreenState extends State<RecipesScreen> {
     }
   }
 
-  void _applyFilter() {
-    setState(() {
-      if (_selectedFilters.isEmpty) {
-        _filteredRecipes = _recipes;
-      } else {
-        _filteredRecipes = _recipes.where((recipe) {
-          // Recipe must match ALL selected filters
-          return _selectedFilters.every((filter) => _matchesFilter(recipe, filter));
-        }).toList();
-      }
-      
-      // Apply sorting
-      _applySorting();
-    });
+  List<Recipe> _getFilteredRecipes() {
+    // Apply filters from provider
+    final filteredRecipes = ref.read(recipeFilterProvider.notifier).getFilteredRecipes(_recipes);
+    
+    // Apply sorting
+    final sorted = List<Recipe>.from(filteredRecipes);
+    _applySorting(sorted);
+    return sorted;
   }
 
-  void _applySorting() {
+  void _applySorting(List<Recipe> recipes) {
     switch (_sortBy) {
       case 'newest':
-        _filteredRecipes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        recipes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
       case 'oldest':
-        _filteredRecipes.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        recipes.sort((a, b) => a.createdAt.compareTo(b.createdAt));
         break;
       case 'rating-high':
-        _filteredRecipes.sort((a, b) {
-          // Sort by likes (descending), then by date if likes are equal
+        recipes.sort((a, b) {
           final likesCompare = b.likes.compareTo(a.likes);
           if (likesCompare != 0) return likesCompare;
           return b.createdAt.compareTo(a.createdAt);
         });
         break;
       case 'rating-low':
-        _filteredRecipes.sort((a, b) {
-          // Sort by likes (ascending), then by date if likes are equal
+        recipes.sort((a, b) {
           final likesCompare = a.likes.compareTo(b.likes);
           if (likesCompare != 0) return likesCompare;
           return b.createdAt.compareTo(a.createdAt);
         });
         break;
-    }
-  }
-
-  bool _matchesFilter(Recipe recipe, String filter) {
-    final totalTime = recipe.prepTimeMinutes + recipe.cookTimeMinutes;
-    final recipeName = recipe.name.toLowerCase();
-    final ingredients = recipe.ingredients.map((i) => i.name.toLowerCase()).toList();
-    final instructions = recipe.instructions.join(' ').toLowerCase();
-
-    switch (filter) {
-      // Zeit
-      case 'very-quick':
-        return totalTime <= 15;
-      case 'quick':
-        return totalTime <= 30;
-      case 'under-hour':
-        return totalTime <= 60;
-
-      // Diät
-      case 'vegetarian':
-        return !ingredients.any((i) => i.contains('fleisch') || i.contains('fisch') || 
-               i.contains('hähnchen') || i.contains('rind') || i.contains('schwein'));
-      case 'vegan':
-        return !ingredients.any((i) => i.contains('fleisch') || i.contains('fisch') || 
-               i.contains('milch') || i.contains('ei') || i.contains('käse') || 
-               i.contains('butter') || i.contains('sahne'));
-      case 'gluten-free':
-        return !ingredients.any((i) => i.contains('mehl') || i.contains('weizen') || 
-               i.contains('brot') || i.contains('nudel'));
-      case 'lactose-free':
-        return !ingredients.any((i) => i.contains('milch') || i.contains('käse') || 
-               i.contains('sahne') || i.contains('butter') || i.contains('joghurt'));
-      case 'low-carb':
-        return !ingredients.any((i) => i.contains('reis') || i.contains('nudel') || 
-               i.contains('kartoffel') || i.contains('brot'));
-      case 'keto':
-        return !ingredients.any((i) => i.contains('zucker') || i.contains('reis') || 
-               i.contains('nudel') || i.contains('kartoffel'));
-
-      // Nährwerte
-      case 'high-protein':
-        return ingredients.any((i) => i.contains('hähnchen') || i.contains('fisch') || 
-               i.contains('ei') || i.contains('tofu') || i.contains('quark'));
-      case 'low-calorie':
-        return ingredients.any((i) => i.contains('gemüse') || i.contains('salat'));
-      case 'sugar-free':
-        return !recipeName.contains('kuchen') && !recipeName.contains('dessert');
-      case 'high-fiber':
-        return ingredients.any((i) => i.contains('vollkorn') || i.contains('haferflocken'));
-
-      // Zubereitungsart
-      case 'baking':
-        return instructions.contains('backen') || instructions.contains('ofen');
-      case 'cooking':
-        return instructions.contains('kochen') || instructions.contains('pfanne');
-
-      // Komplexität
-      case 'few-ingredients':
-        return recipe.ingredients.length <= 7;
-      case 'popular':
-        return true; // TODO: Implement likes count
-
-      // Mahlzeit
-      case 'breakfast':
-        return recipeName.contains('frühstück') || recipeName.contains('müsli') || 
-               recipeName.contains('pancake') || recipeName.contains('toast');
-      case 'lunch':
-        return recipeName.contains('mittag') || recipeName.contains('suppe') || 
-               recipeName.contains('salat');
-      case 'dinner':
-        return recipeName.contains('abend') || recipeName.contains('braten');
-      case 'snack':
-        return recipeName.contains('snack') || recipeName.contains('happen');
-      case 'dessert':
-        return recipeName.contains('dessert') || recipeName.contains('kuchen') || 
-               recipeName.contains('torte');
-
-      // Küche
-      case 'italian':
-        return recipeName.contains('pasta') || recipeName.contains('pizza') || 
-               ingredients.any((i) => i.contains('parmesan') || i.contains('mozzarella'));
-      case 'asian':
-        return recipeName.contains('curry') || recipeName.contains('wok') || 
-               ingredients.any((i) => i.contains('soja') || i.contains('ingwer'));
-      case 'mediterranean':
-        return ingredients.any((i) => i.contains('olive') || i.contains('feta'));
-      case 'german':
-        return recipeName.contains('schnitzel') || recipeName.contains('bratwurst');
-      case 'mexican':
-        return recipeName.contains('taco') || recipeName.contains('burrito');
-      case 'oriental':
-        return ingredients.any((i) => i.contains('couscous') || i.contains('kichererbsen'));
-
-      // Hauptzutat
-      case 'with-chicken':
-        return ingredients.any((i) => i.contains('hähnchen') || i.contains('huhn'));
-      case 'with-beef':
-        return ingredients.any((i) => i.contains('rind'));
-      case 'with-pasta':
-        return ingredients.any((i) => i.contains('nudel') || i.contains('pasta'));
-      case 'with-rice':
-        return ingredients.any((i) => i.contains('reis'));
-      case 'with-vegetables':
-        return ingredients.any((i) => i.contains('gemüse') || i.contains('paprika') || 
-               i.contains('zucchini'));
-      case 'with-cheese':
-        return ingredients.any((i) => i.contains('käse'));
-
-      // Anlass
-      case 'christmas':
-        return recipeName.contains('weihnacht') || recipeName.contains('advent');
-      case 'birthday':
-        return recipeName.contains('geburtstag') || recipeName.contains('torte');
-      case 'bbq':
-        return recipeName.contains('grill') || instructions.contains('grill');
-      case 'picnic':
-        return recipeName.contains('picknick') || recipeName.contains('salat');
-      case 'festive':
-        return recipeName.contains('festlich') || recipeName.contains('gäste');
-
-      // Sport
-      case 'athlete':
-        return ingredients.any((i) => i.contains('protein') || i.contains('quark'));
-
-      default:
-        return true;
     }
   }
 
@@ -230,10 +95,16 @@ class _RecipesScreenState extends State<RecipesScreen> {
       final recipes = await _recipeService.searchRecipes(query);
       setState(() {
         _recipes = recipes;
+        _searchQuery = query;
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error searching recipes: $e')),
+        );
+      }
     }
   }
 
@@ -247,6 +118,19 @@ class _RecipesScreenState extends State<RecipesScreen> {
             icon: const Icon(Icons.search),
             onPressed: () => _showSearchDialog(),
           ),
+          Consumer(
+            builder: (context, ref, child) {
+              final filterState = ref.watch(recipeFilterProvider);
+              return IconButton(
+                icon: Badge(
+                  label: Text('${filterState.activeFilterCount}'),
+                  isLabelVisible: filterState.hasActiveFilters,
+                  child: const Icon(Icons.filter_list_rounded),
+                ),
+                onPressed: () => _showAdvancedFilters(),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () => context.push('/recipes/add'),
@@ -255,55 +139,14 @@ class _RecipesScreenState extends State<RecipesScreen> {
       ),
       body: Column(
         children: [
-          // Filter Button
-          Container(
-            padding: const EdgeInsets.all(AppDimensions.paddingMedium),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showFilterDialog(),
-                    icon: Icon(
-                      Icons.filter_list,
-                      color: _selectedFilters.isEmpty ? null : AppColors.info,
-                    ),
-                    label: Text(
-                      _selectedFilters.isEmpty 
-                          ? context.tr('filter') 
-                          : context.tr('filters_active', params: {'count': '${_selectedFilters.length}'}),
-                      style: TextStyle(
-                        color: _selectedFilters.isEmpty ? null : AppColors.info,
-                        fontWeight: _selectedFilters.isEmpty ? FontWeight.normal : FontWeight.bold,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                        color: _selectedFilters.isEmpty ? Colors.grey : AppColors.info,
-                        width: _selectedFilters.isEmpty ? 1 : 2,
-                      ),
-                    ),
-                  ),
-                ),
-                if (_selectedFilters.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () {
-                      setState(() => _selectedFilters.clear());
-                      _applyFilter();
-                    },
-                    icon: const Icon(Icons.clear),
-                    tooltip: context.tr('clear_all_filters'),
-                  ),
-                ],
-              ],
-            ),
-          ),
+          // Quick Filters Row
+          const QuickFiltersRow(),
           const Divider(height: 1),
           // Recipes List
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _filteredRecipes.isEmpty
+                : _getFilteredRecipes().isEmpty
                     ? _buildEmptyState()
                     : RefreshIndicator(
                         onRefresh: _loadRecipes,
@@ -312,14 +155,15 @@ class _RecipesScreenState extends State<RecipesScreen> {
                             left: AppDimensions.paddingMedium,
                             right: AppDimensions.paddingMedium,
                             top: AppDimensions.paddingMedium,
-                            bottom: 120, // Extra Padding für Navigation Bar
+                            bottom: 120,
                           ),
-                          itemCount: _filteredRecipes.length,
+                          itemCount: _getFilteredRecipes().length,
                           itemBuilder: (context, index) {
+                            final filteredRecipes = _getFilteredRecipes();
                             return _RecipeCard(
-                              recipe: _filteredRecipes[index],
-                              onTap: () => context.push('/recipes/${_filteredRecipes[index].id}'),
-                              onLike: () => _toggleLike(_filteredRecipes[index]),
+                              recipe: filteredRecipes[index],
+                              onTap: () => context.push('/recipes/${filteredRecipes[index].id}'),
+                              onLike: () => _toggleLike(filteredRecipes[index]),
                             );
                           },
                         ),
@@ -330,85 +174,19 @@ class _RecipesScreenState extends State<RecipesScreen> {
     );
   }
 
-  Widget _buildFilterSectionDialog(StateSetter setDialogState, String title, List<(String, String)> filters) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 4),
-          child: Text(
-            title,
-            style: AppTextStyles.bodySmall.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade700,
-            ),
-          ),
-        ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: filters.map((filter) {
-            return _buildFilterChipDialog(setDialogState, filter.$1, filter.$2);
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSortChip(StateSetter setDialogState, String label, String sortValue) {
-    final isSelected = _sortBy == sortValue;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        setDialogState(() {
-          _sortBy = sortValue;
-        });
-        setState(() {});
-        _applyFilter();
-      },
-      selectedColor: AppColors.success.withOpacity(0.2),
-      backgroundColor: Colors.grey.shade200,
-      labelStyle: TextStyle(
-        color: isSelected ? AppColors.success : Colors.black87,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        fontSize: 12,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
-  }
-
-  Widget _buildFilterChipDialog(StateSetter setDialogState, String label, String filterValue) {
-    final isSelected = _selectedFilters.contains(filterValue);
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        setDialogState(() {
-          if (selected) {
-            _selectedFilters.add(filterValue);
-          } else {
-            _selectedFilters.remove(filterValue);
-          }
-        });
-        setState(() {});
-        _applyFilter();
-      },
-      selectedColor: AppColors.info.withOpacity(0.2),
-      checkmarkColor: AppColors.info,
-      backgroundColor: Colors.grey.shade200,
-      labelStyle: TextStyle(
-        color: isSelected ? AppColors.info : Colors.black87,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        fontSize: 12,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  void _showAdvancedFilters() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const AdvancedFiltersModal(),
     );
   }
 
   Widget _buildEmptyState() {
+    final filterState = ref.watch(recipeFilterProvider);
+    final hasFilters = filterState.hasActiveFilters;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -420,23 +198,22 @@ class _RecipesScreenState extends State<RecipesScreen> {
           ),
           const SizedBox(height: AppDimensions.spacingMedium),
           Text(
-            _selectedFilters.isNotEmpty ? context.tr('no_recipes_found') : context.tr('no_recipes_yet'),
+            hasFilters ? context.tr('no_recipes_found') : context.tr('no_recipes_yet'),
             style: AppTextStyles.h2,
           ),
           const SizedBox(height: AppDimensions.spacingSmall),
           Text(
-            _selectedFilters.isNotEmpty 
+            hasFilters
                 ? context.tr('try_other_filters_or_add_recipe')
                 : context.tr('add_your_first_recipe'),
             style: AppTextStyles.bodyMedium.copyWith(color: Colors.grey),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppDimensions.spacingMedium),
-          if (_selectedFilters.isNotEmpty)
+          if (hasFilters)
             ElevatedButton(
               onPressed: () {
-                setState(() => _selectedFilters.clear());
-                _applyFilter();
+                ref.read(recipeFilterProvider.notifier).clearAllFilters();
               },
               child: Text(context.tr('clear_all_filters')),
             )
@@ -447,26 +224,6 @@ class _RecipesScreenState extends State<RecipesScreen> {
               label: Text(context.tr('add_recipe')),
             ),
         ],
-      ),
-    );
-  }
-
-  void _showFilterDialog() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (context) => _FilterScreen(
-          selectedFilters: _selectedFilters,
-          sortBy: _sortBy,
-          onApply: (filters, sort) {
-            setState(() {
-              _selectedFilters = filters;
-              _sortBy = sort;
-            });
-            _applyFilter();
-          },
-        ),
       ),
     );
   }
@@ -519,209 +276,8 @@ class _RecipesScreenState extends State<RecipesScreen> {
   }
 }
 
-class _FilterScreen extends StatefulWidget {
-  final Set<String> selectedFilters;
-  final String sortBy;
-  final Function(Set<String>, String) onApply;
-
-  const _FilterScreen({
-    required this.selectedFilters,
-    required this.sortBy,
-    required this.onApply,
-  });
-
-  @override
-  State<_FilterScreen> createState() => _FilterScreenState();
-}
-
-class _FilterScreenState extends State<_FilterScreen> {
-  late Set<String> _selectedFilters;
-  late String _sortBy;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedFilters = Set.from(widget.selectedFilters);
-    _sortBy = widget.sortBy;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('filter')),
-        actions: [
-          if (_selectedFilters.isNotEmpty)
-            TextButton(
-              onPressed: () {
-                setState(() => _selectedFilters.clear());
-              },
-              child: Text(context.tr('clear_all_filters')),
-            ),
-          TextButton(
-            onPressed: () {
-              widget.onApply(_selectedFilters, _sortBy);
-              Navigator.pop(context);
-            },
-            child: Text(context.tr('apply'), style: const TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Sortierung
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                            padding: const EdgeInsets.only(top: 8, bottom: 4),
-                            child: Text(
-                              '📊 ${context.tr('sorting')}',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                          ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  _buildSortChip(context.tr('newest_first'), 'newest'),
-                  _buildSortChip(context.tr('oldest_first'), 'oldest'),
-                  _buildSortChip('⭐ ${context.tr('best_rated')}', 'rating-high'),
-                  _buildSortChip('⭐ ${context.tr('worst_rated')}', 'rating-low'),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Divider(),
-            ],
-          ),
-          _buildFilterSection('⏱️ ${context.tr('time')}', [
-                        ('🚀 ${context.tr('under_15_min')}', 'very-quick'),
-                        ('⚡ ${context.tr('under_30_min')}', 'quick'),
-                        ('⏰ ${context.tr('under_1_hour')}', 'under-hour'),
-          ]),
-          _buildFilterSection('🥗 ${context.tr('diet')}', [
-                        ('🥗 ${context.tr('vegetarian')}', 'vegetarian'),
-                        ('🌱 ${context.tr('vegan')}', 'vegan'),
-                        ('🌾 ${context.tr('gluten_free')}', 'gluten-free'),
-                        ('🥛 ${context.tr('lactose_free')}', 'lactose-free'),
-                        ('🥩 ${context.tr('low_carb')}', 'low-carb'),
-                        ('💪 ${context.tr('high_protein')}', 'high-protein'),
-                        ('🥑 ${context.tr('keto')}', 'keto'),
-          ]),
-          _buildFilterSection('🍽️ ${context.tr('meal')}', [
-                        ('☀️ ${context.tr('breakfast')}', 'breakfast'),
-                        ('🌞 ${context.tr('lunch')}', 'lunch'),
-                        ('🌙 ${context.tr('dinner')}', 'dinner'),
-                        ('🍿 ${context.tr('snack')}', 'snack'),
-                        ('🍰 ${context.tr('dessert')}', 'dessert'),
-          ]),
-          _buildFilterSection('🌍 ${context.tr('cuisine')}', [
-                        ('🇮🇹 ${context.tr('italian')}', 'italian'),
-                        ('🥢 ${context.tr('asian')}', 'asian'),
-                        ('🫒 ${context.tr('mediterranean')}', 'mediterranean'),
-                        ('🥨 ${context.tr('german')}', 'german'),
-                        ('🌮 ${context.tr('mexican')}', 'mexican'),
-                        ('🧆 ${context.tr('oriental')}', 'oriental'),
-          ]),
-          _buildFilterSection('🥘 ${context.tr('main_ingredient')}', [
-                        ('🍗 ${context.tr('with_chicken')}', 'with-chicken'),
-                        ('🥩 ${context.tr('with_beef')}', 'with-beef'),
-                        ('🍝 ${context.tr('with_pasta')}', 'with-pasta'),
-                        ('🍚 ${context.tr('with_rice')}', 'with-rice'),
-                        ('🥦 ${context.tr('with_vegetables')}', 'with-vegetables'),
-                        ('🧀 ${context.tr('with_cheese')}', 'with-cheese'),
-          ]),
-          _buildFilterSection('🎉 ${context.tr('occasion')}', [
-                        ('🎄 ${context.tr('christmas')}', 'christmas'),
-                        ('🎂 ${context.tr('birthday')}', 'birthday'),
-                        ('🔥 ${context.tr('bbq')}', 'bbq'),
-                        ('🧺 ${context.tr('picnic')}', 'picnic'),
-                        ('🎊 ${context.tr('festive')}', 'festive'),
-          ]),
-          _buildFilterSection('⚡ ${context.tr('other')}', [
-                        ('👍 ${context.tr('popular')}', 'popular'),
-                        ('📝 ${context.tr('few_ingredients')}', 'few-ingredients'),
-                        ('🍳 ${context.tr('cooking')}', 'cooking'),
-                        ('🍰 ${context.tr('baking')}', 'baking'),
-                        ('🏃 ${context.tr('low_calorie')}', 'low-calorie'),
-                        ('🚫 ${context.tr('sugar_free')}', 'sugar-free'),
-                        ('🌾 ${context.tr('high_fiber')}', 'high-fiber'),
-            ('💪 ${context.tr('athlete')}', 'athlete'),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterSection(String title, List<(String, String)> filters) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 16, bottom: 8),
-          child: Text(
-            title,
-            style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: filters.map((filter) => _buildFilterChip(filter.$1, filter.$2)).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFilterChip(String label, String filterValue) {
-    final isSelected = _selectedFilters.contains(filterValue);
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          if (selected) {
-            _selectedFilters.add(filterValue);
-          } else {
-            _selectedFilters.remove(filterValue);
-          }
-        });
-      },
-      selectedColor: AppColors.info.withOpacity(0.2),
-      checkmarkColor: AppColors.info,
-      backgroundColor: Colors.grey.shade200,
-      labelStyle: TextStyle(
-        color: isSelected ? AppColors.info : Colors.black87,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-    );
-  }
-
-  Widget _buildSortChip(String label, String sortValue) {
-    final isSelected = _sortBy == sortValue;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          _sortBy = sortValue;
-        });
-      },
-      selectedColor: AppColors.success.withOpacity(0.2),
-      backgroundColor: Colors.grey.shade200,
-      labelStyle: TextStyle(
-        color: isSelected ? AppColors.success : Colors.black87,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-    );
-  }
-}
-
-class _RecipeCard extends StatelessWidget{
+// Recipe Card Widget
+class _RecipeCard extends StatelessWidget {
   final Recipe recipe;
   final VoidCallback onTap;
   final VoidCallback onLike;
@@ -743,64 +299,23 @@ class _RecipeCard extends StatelessWidget{
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Image
-            Stack(
-              children: [
-                CachedNetworkImage(
-                  imageUrl: recipe.imageUrl,
+            if (recipe.imageUrl.isNotEmpty)
+              CachedNetworkImage(
+                imageUrl: recipe.imageUrl,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
                   height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    height: 200,
-                    color: Colors.grey[300],
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    height: 200,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.restaurant, size: 50),
-                  ),
+                  color: Colors.grey.shade200,
+                  child: const Center(child: CircularProgressIndicator()),
                 ),
-                // Like button overlay
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Material(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    child: InkWell(
-                      onTap: onLike,
-                      borderRadius: BorderRadius.circular(20),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              recipe.isLikedByUser
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: recipe.isLikedByUser
-                                  ? Colors.red
-                                  : Colors.grey[700],
-                              size: 20,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${recipe.likes}',
-                              style: TextStyle(
-                                color: Colors.grey[700],
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                errorWidget: (context, url, error) => Container(
+                  height: 200,
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.restaurant, size: 50),
                 ),
-              ],
-            ),
+              ),
             // Content
             Padding(
               padding: const EdgeInsets.all(AppDimensions.paddingMedium),
@@ -813,28 +328,40 @@ class _RecipeCard extends StatelessWidget{
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: AppDimensions.spacingSmall),
+                  const SizedBox(height: 8),
                   Text(
                     recipe.description,
-                    style: AppTextStyles.bodySmall.copyWith(color: Colors.grey[600]),
+                    style: AppTextStyles.bodyMedium.copyWith(color: Colors.grey),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: AppDimensions.spacingMedium),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
-                      Icon(Icons.schedule, size: 16, color: Colors.grey[600]),
+                      Icon(Icons.schedule, size: 16, color: Colors.grey.shade600),
                       const SizedBox(width: 4),
                       Text(
                         '${recipe.totalTimeMinutes} min',
-                        style: AppTextStyles.bodySmall.copyWith(color: Colors.grey[600]),
+                        style: AppTextStyles.bodySmall.copyWith(color: Colors.grey.shade600),
                       ),
                       const SizedBox(width: 16),
-                      Icon(Icons.people, size: 16, color: Colors.grey[600]),
+                      Icon(Icons.restaurant, size: 16, color: Colors.grey.shade600),
                       const SizedBox(width: 4),
                       Text(
                         '${recipe.defaultServings} servings',
-                        style: AppTextStyles.bodySmall.copyWith(color: Colors.grey[600]),
+                        style: AppTextStyles.bodySmall.copyWith(color: Colors.grey.shade600),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(
+                          recipe.isLikedByUser ? Icons.favorite : Icons.favorite_border,
+                          color: recipe.isLikedByUser ? Colors.red : null,
+                        ),
+                        onPressed: onLike,
+                      ),
+                      Text(
+                        '${recipe.likes}',
+                        style: AppTextStyles.bodySmall,
                       ),
                     ],
                   ),

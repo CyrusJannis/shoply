@@ -5,6 +5,7 @@ import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
 import 'package:shoply/data/services/supabase_service.dart';
 import 'package:shoply/presentation/screens/profile/settings/display_name_screen.dart';
+import 'package:shoply/presentation/screens/profile/settings/personal_info_screen.dart';
 import 'package:shoply/presentation/screens/profile/settings/diet_preferences_screen.dart';
 import 'package:shoply/presentation/screens/profile/settings/language_screen.dart';
 import 'package:shoply/presentation/screens/profile/settings/theme_screen.dart';
@@ -78,6 +79,16 @@ class ProfileScreen extends ConsumerWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const DisplayNameScreen()),
+            ),
+          ),
+          _buildListTile(
+            context,
+            icon: Icons.badge_outlined,
+            title: 'Personal Information',
+            subtitle: 'Age, height, gender',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PersonalInfoScreen()),
             ),
           ),
           _buildListTile(

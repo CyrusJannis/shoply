@@ -14,12 +14,12 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
   String _selectedLanguage = 'de';
 
   final List<Map<String, String>> _languages = [
-    {'code': 'de', 'name': 'Deutsch', 'flag': '🇩🇪'},
-    {'code': 'en', 'name': 'English', 'flag': '🇬🇧'},
-    {'code': 'es', 'name': 'Español', 'flag': '🇪🇸'},
-    {'code': 'fr', 'name': 'Français', 'flag': '🇫🇷'},
-    {'code': 'it', 'name': 'Italiano', 'flag': '🇮🇹'},
-    {'code': 'tr', 'name': 'Türkçe', 'flag': '🇹🇷'},
+    {'code': 'de', 'name': 'Deutsch'},
+    {'code': 'en', 'name': 'English'},
+    {'code': 'es', 'name': 'Español'},
+    {'code': 'fr', 'name': 'Français'},
+    {'code': 'it', 'name': 'Italiano'},
+    {'code': 'tr', 'name': 'Türkçe'},
   ];
 
   @override
@@ -40,14 +40,50 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
           final language = _languages[index];
           final isSelected = _selectedLanguage == language['code'];
 
-          return RadioListTile<String>(
-            title: Row(
-              children: [
-                Text(language['flag']!, style: const TextStyle(fontSize: 24)),
-                const SizedBox(width: 12),
-                Text(language['name']!),
-              ],
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.05)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected
+                    ? Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white.withOpacity(0.2)
+                        : Colors.black.withOpacity(0.1)
+                    : Colors.transparent,
+                width: 1.5,
+              ),
             ),
+            child: RadioListTile<String>(
+              title: Row(
+                children: [
+                  Icon(
+                    Icons.language_rounded,
+                    size: 22,
+                    color: isSelected
+                        ? Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black
+                        : Colors.grey.shade600,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    language['name']!,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected
+                          ? Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
             value: language['code']!,
             groupValue: _selectedLanguage,
             onChanged: (value) async {
@@ -59,7 +95,13 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                 );
               }
             },
-            activeColor: Colors.blue,
+              activeColor: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
           );
         },
       ),

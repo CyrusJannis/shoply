@@ -8,13 +8,51 @@ import 'package:shoply/data/services/supabase_service.dart';
 import 'package:shoply/data/services/shopping_history_service.dart';
 import 'package:shoply/presentation/screens/history/shopping_history_screen.dart';
 import 'package:shoply/presentation/state/lists_provider.dart';
+import 'package:shoply/presentation/state/last_list_provider.dart';
 import 'package:intl/intl.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _hasAutoOpened = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autoOpenLastList();
+    });
+  }
+
+  Future<void> _autoOpenLastList() async {
+    if (_hasAutoOpened) return;
+    _hasAutoOpened = true;
+
+    final lastListAsync = ref.read(lastAccessedListProvider);
+    final listsAsync = ref.read(listsNotifierProvider);
+
+    lastListAsync.whenData((lastListId) {
+      if (lastListId != null && mounted) {
+        listsAsync.whenData((lists) {
+          final list = lists.cast<dynamic>().firstWhere(
+            (l) => l.id == lastListId,
+            orElse: () => null,
+          );
+          if (list != null && mounted) {
+            context.push('/lists/$lastListId?name=${Uri.encodeComponent(list.name)}');
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = SupabaseService.instance.currentUser;
     final displayName = user?.userMetadata?['display_name'] ?? 'User';
     final listsAsync = ref.watch(listsNotifierProvider);

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:shoply/data/models/product_category.dart';
 
 /// Maps between ProductCategory enum and string category names
@@ -17,74 +18,69 @@ class CategoryMapper {
     return ProductCategory.fruitsVegetables; // Default fallback
   }
 
-  /// Get category icon emoji
-  static String getIcon(String categoryName) {
-    final category = fromDisplayString(categoryName);
-    return _getCategoryIcon(category);
-  }
-
-  static String _getCategoryIcon(ProductCategory category) {
+  /// Get category icon
+  static IconData getIcon(ProductCategory category) {
     switch (category) {
       case ProductCategory.fruitsVegetables:
-        return '🥬';
+        return Icons.apple_rounded;
       case ProductCategory.meatFish:
-        return '🥩';
+        return Icons.set_meal_rounded;
       case ProductCategory.bakery:
-        return '🍞';
+        return Icons.bakery_dining_rounded;
       case ProductCategory.flowersPlants:
-        return '🌸';
+        return Icons.local_florist_rounded;
       case ProductCategory.dairy:
-        return '🥛';
+        return Icons.water_drop_rounded;
       case ProductCategory.frozen:
-        return '🧊';
+        return Icons.ac_unit_rounded;
       case ProductCategory.staples:
-        return '🌾';
+        return Icons.grain_rounded;
       case ProductCategory.canned:
-        return '🥫';
+        return Icons.inventory_2_rounded;
       case ProductCategory.spices:
-        return '🧂';
+        return Icons.grain_rounded;
       case ProductCategory.condiments:
-        return '🍯';
+        return Icons.inventory_2_rounded;
       case ProductCategory.breakfast:
-        return '🥣';
+        return Icons.cookie_rounded;
       case ProductCategory.sweets:
-        return '🍬';
+        return Icons.cookie_rounded;
       case ProductCategory.snacks:
-        return '🍿';
+        return Icons.cookie_rounded;
       case ProductCategory.beverages:
-        return '🥤';
+        return Icons.local_cafe_rounded;
       case ProductCategory.household:
-        return '🍽️';
+        return Icons.home_rounded;
       case ProductCategory.cleaning:
-        return '🧹';
+        return Icons.cleaning_services_rounded;
       case ProductCategory.paper:
-        return '🧻';
+        return Icons.note_rounded;
       case ProductCategory.drugstore:
-        return '💊';
+        return Icons.medical_services_rounded;
       case ProductCategory.bodycare:
-        return '🧴';
+        return Icons.spa_rounded;
       case ProductCategory.cosmetics:
-        return '💄';
+        return Icons.face_rounded;
       case ProductCategory.hygiene:
-        return '🪥';
+        return Icons.clean_hands_rounded;
       case ProductCategory.baby:
-        return '🍼';
+        return Icons.child_care_rounded;
       case ProductCategory.petSupplies:
-        return '🐾';
+        return Icons.pets_rounded;
       case ProductCategory.nonFood:
-        return '📦';
+        return Icons.inventory_rounded;
       case ProductCategory.appliances:
-        return '⚡';
+        return Icons.electrical_services_rounded;
       case ProductCategory.stationery:
-        return '✏️';
+        return Icons.edit_rounded;
       case ProductCategory.textiles:
-        return '🧺';
+        return Icons.checkroom_rounded;
       case ProductCategory.toys:
-        return '🧸';
+        return Icons.toys_rounded;
       case ProductCategory.seasonal:
-        return '🎄';
+        return Icons.celebration_rounded;
       case ProductCategory.checkout:
-        return '🛒';
+        return Icons.shopping_cart_rounded;
     }
   }
 

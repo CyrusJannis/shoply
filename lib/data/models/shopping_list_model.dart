@@ -11,6 +11,7 @@ class ShoppingListModel extends Equatable {
   final String sortMode;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? lastAccessedAt;
   final int? itemCount;
   final int? uncheckedCount;
   final int? orderIndex;
@@ -26,6 +27,7 @@ class ShoppingListModel extends Equatable {
     this.sortMode = 'category',
     required this.createdAt,
     required this.updatedAt,
+    this.lastAccessedAt,
     this.itemCount,
     this.uncheckedCount,
     this.orderIndex,
@@ -52,6 +54,9 @@ class ShoppingListModel extends Equatable {
       sortMode: json['sort_mode'] as String? ?? 'category',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      lastAccessedAt: json['last_accessed_at'] != null
+          ? DateTime.parse(json['last_accessed_at'] as String)
+          : null,
       itemCount: itemCount,
       uncheckedCount: json['unchecked_count'] as int?,
       orderIndex: json['order_index'] as int?,
@@ -70,6 +75,7 @@ class ShoppingListModel extends Equatable {
       'sort_mode': sortMode,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'last_accessed_at': lastAccessedAt?.toIso8601String(),
       'order_index': orderIndex,
     };
   }
@@ -85,6 +91,7 @@ class ShoppingListModel extends Equatable {
     String? sortMode,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? lastAccessedAt,
     int? itemCount,
     int? uncheckedCount,
     int? orderIndex,
@@ -100,6 +107,7 @@ class ShoppingListModel extends Equatable {
       sortMode: sortMode ?? this.sortMode,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      lastAccessedAt: lastAccessedAt ?? this.lastAccessedAt,
       itemCount: itemCount ?? this.itemCount,
       uncheckedCount: uncheckedCount ?? this.uncheckedCount,
       orderIndex: orderIndex ?? this.orderIndex,
@@ -118,6 +126,7 @@ class ShoppingListModel extends Equatable {
         sortMode,
         createdAt,
         updatedAt,
+        lastAccessedAt,
         itemCount,
         uncheckedCount,
         orderIndex,

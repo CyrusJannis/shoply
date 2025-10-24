@@ -1,9 +1,11 @@
 import 'package:shoply/data/models/shopping_history.dart';
 import 'package:shoply/data/models/shopping_item_model.dart';
+import 'package:shoply/data/services/purchase_tracking_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ShoppingHistoryService {
   final _supabase = Supabase.instance.client;
+  final _trackingService = PurchaseTrackingService();
 
   /// Complete a shopping trip and move items to history
   Future<void> completeShoppingTrip({
@@ -40,6 +42,9 @@ class ShoppingHistoryService {
       }).toList();
 
       await _supabase.from('shopping_history_items').insert(historyItems);
+
+      // Track purchases for recommendations
+      await _trackingService.trackPurchases(items);
 
       print('Shopping trip completed: $historyId');
     } catch (e) {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shoply/core/constants/app_colors.dart';
-import 'package:shoply/core/constants/categories.dart';
-import 'package:shoply/presentation/state/auth_provider.dart';
+import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/localization/localization_helper.dart';
+import 'package:shoply/data/services/supabase_service.dart';
+import 'package:shoply/presentation/state/auth_provider.dart';
 
 class DietPreferencesScreen extends ConsumerStatefulWidget {
   const DietPreferencesScreen({super.key});
@@ -16,36 +16,135 @@ class _DietPreferencesScreenState extends ConsumerState<DietPreferencesScreen> {
   Set<String> _selectedPreferences = {};
   bool _isLoading = false;
 
+  final List<DietPreference> _preferences = [
+    DietPreference(
+      id: 'vegetarian',
+      label: 'Vegetarian',
+      icon: Icons.eco_rounded,
+      description: 'No meat or fish',
+    ),
+    DietPreference(
+      id: 'vegan',
+      label: 'Vegan',
+      icon: Icons.spa_rounded,
+      description: 'No animal products',
+    ),
+    DietPreference(
+      id: 'gluten_free',
+      label: 'Gluten-Free',
+      icon: Icons.grain_rounded,
+      description: 'No gluten-containing foods',
+    ),
+    DietPreference(
+      id: 'dairy_free',
+      label: 'Dairy-Free',
+      icon: Icons.no_drinks_rounded,
+      description: 'No milk or dairy products',
+    ),
+    DietPreference(
+      id: 'keto',
+      label: 'Keto',
+      icon: Icons.fitness_center_rounded,
+      description: 'Low-carb, high-fat diet',
+    ),
+    DietPreference(
+      id: 'paleo',
+      label: 'Paleo',
+      icon: Icons.nature_people_rounded,
+      description: 'Whole foods, no processed items',
+    ),
+    DietPreference(
+      id: 'low_carb',
+      label: 'Low-Carb',
+      icon: Icons.trending_down_rounded,
+      description: 'Reduced carbohydrate intake',
+    ),
+    DietPreference(
+      id: 'halal',
+      label: 'Halal',
+      icon: Icons.mosque_rounded,
+      description: 'Islamic dietary laws',
+    ),
+    DietPreference(
+      id: 'kosher',
+      label: 'Kosher',
+      icon: Icons.star_rounded,
+      description: 'Jewish dietary laws',
+    ),
+    DietPreference(
+      id: 'pescatarian',
+      label: 'Pescatarian',
+      icon: Icons.set_meal_rounded,
+      description: 'Vegetarian plus fish',
+    ),
+    DietPreference(
+      id: 'nut_free',
+      label: 'Nut-Free',
+      icon: Icons.block_rounded,
+      description: 'No nuts or nut products',
+    ),
+    DietPreference(
+      id: 'low_sodium',
+      label: 'Low-Sodium',
+      icon: Icons.water_drop_rounded,
+      description: 'Reduced salt intake',
+    ),
+  ];
+
   @override
   void initState() {
     super.initState();
-    final user = ref.read(currentUserProvider).value;
-    _selectedPreferences = Set.from(user?.dietPreferences ?? []);
+    _loadUserPreferences();
+  }
+
+  Future<void> _loadUserPreferences() async {
+    final user = SupabaseService.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final response = await SupabaseService.instance
+          .from('users')
+          .select('diet_preferences')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (response != null && mounted) {
+        setState(() {
+          _selectedPreferences = Set.from(
+            (response['diet_preferences'] as List?)?.cast<String>() ?? []
+          );
+        });
+      }
+    } catch (e) {
+      // Handle error silently
+    }
   }
 
   Future<void> _savePreferences() async {
+    final user = SupabaseService.instance.currentUser;
+    if (user == null) return;
+
     setState(() => _isLoading = true);
 
     try {
-      final authService = ref.read(authServiceProvider);
-      await authService.updateDietPreferences(_selectedPreferences.toList());
+      await SupabaseService.instance.from('users').update({
+        'diet_preferences': _selectedPreferences.toList(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', user.id);
       
       // Refresh user data
       ref.invalidate(currentUserProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('diet_prefs_saved')),
-            backgroundColor: AppColors.success,
-          ),
+          const SnackBar(content: Text('Dietary preferences updated')),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler: $e')),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     } finally {
@@ -72,59 +171,230 @@ class _DietPreferencesScreenState extends ConsumerState<DietPreferencesScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppDimensions.screenHorizontalPadding),
         children: [
-          Text(
-            context.tr('select_diet_prefs'),
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.tr('diet_warning_desc'),
-            style: const TextStyle(color: Colors.grey),
-          ),
-          const SizedBox(height: 24),
-          ...Categories.dietPreferences.map((preference) {
-            final isSelected = _selectedPreferences.contains(preference);
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: CheckboxListTile(
-                title: Text(preference),
-                subtitle: _getDietDescription(preference),
-                value: isSelected,
-                onChanged: (value) {
-                  setState(() {
-                    if (value == true) {
-                      _selectedPreferences.add(preference);
-                    } else {
-                      _selectedPreferences.remove(preference);
-                    }
-                  });
-                },
-                activeColor: AppColors.info,
+          // Selected count
+          if (_selectedPreferences.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(
+                '${_selectedPreferences.length} selected',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.color
+                          ?.withOpacity(0.6),
+                    ),
               ),
-            );
-          }),
+            ),
+
+          // Preference cards
+          ..._preferences.map((pref) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildPreferenceCard(context, pref),
+              )),
+
+          const SizedBox(height: 16),
+
+          // No restrictions option
+          _buildNoRestrictionsCard(context),
         ],
       ),
     );
   }
 
-  Widget? _getDietDescription(String preference) {
-    final descriptions = {
-      'None / No restrictions': 'Keine Einschränkungen',
-      'Vegetarian': 'Kein Fleisch oder Fisch',
-      'Vegan': 'Keine tierischen Produkte',
-      'Gluten-free': 'Kein Gluten (Weizen, etc.)',
-      'Lactose-free': 'Keine Laktose (Milchprodukte)',
-      'Low-carb / Keto': 'Wenig Kohlenhydrate',
-      'Halal': 'Nach islamischen Regeln',
-      'Kosher': 'Nach jüdischen Regeln',
-      'Nut allergy': 'Keine Nüsse',
-      'Other allergies': 'Andere Allergien',
-    };
+  Widget _buildPreferenceCard(BuildContext context, DietPreference preference) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final isSelected = _selectedPreferences.contains(preference.id);
 
-    final desc = descriptions[preference];
-    return desc != null ? Text(desc, style: const TextStyle(fontSize: 12)) : null;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          if (isSelected) {
+            _selectedPreferences.remove(preference.id);
+          } else {
+            _selectedPreferences.add(preference.id);
+          }
+        });
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDarkMode ? Colors.blue.shade400.withOpacity(0.2) : Colors.blue.shade50)
+              : (isDarkMode ? Colors.grey.shade800.withOpacity(0.3) : Colors.grey.shade100),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? (isDarkMode ? Colors.blue.shade400 : Colors.blue.shade600)
+                : (isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? (isDarkMode ? Colors.blue.shade400.withOpacity(0.3) : Colors.blue.shade100)
+                    : (isDarkMode ? Colors.grey.shade700.withOpacity(0.3) : Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                preference.icon,
+                size: 24,
+                color: isSelected
+                    ? (isDarkMode ? Colors.blue.shade300 : Colors.blue.shade600)
+                    : (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    preference.label,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected
+                          ? (isDarkMode ? Colors.blue.shade300 : Colors.blue.shade600)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    preference.description,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? (isDarkMode ? Colors.blue.shade400 : Colors.blue.shade600)
+                    : Colors.transparent,
+                border: Border.all(
+                  color: isSelected
+                      ? (isDarkMode ? Colors.blue.shade400 : Colors.blue.shade600)
+                      : (isDarkMode ? Colors.grey.shade600 : Colors.grey.shade400),
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? const Icon(
+                      Icons.check,
+                      size: 16,
+                      color: Colors.white,
+                    )
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
   }
+
+  Widget _buildNoRestrictionsCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final isSelected = _selectedPreferences.isEmpty;
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedPreferences.clear();
+        });
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDarkMode ? Colors.green.shade400.withOpacity(0.2) : Colors.green.shade50)
+              : (isDarkMode ? Colors.grey.shade800.withOpacity(0.3) : Colors.grey.shade100),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? (isDarkMode ? Colors.green.shade400 : Colors.green.shade600)
+                : (isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? (isDarkMode ? Colors.green.shade400.withOpacity(0.3) : Colors.green.shade100)
+                    : (isDarkMode ? Colors.grey.shade700.withOpacity(0.3) : Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.check_circle_outline_rounded,
+                size: 24,
+                color: isSelected
+                    ? (isDarkMode ? Colors.green.shade300 : Colors.green.shade600)
+                    : (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'No Restrictions',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected
+                          ? (isDarkMode ? Colors.green.shade300 : Colors.green.shade600)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'I eat everything',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class DietPreference {
+  final String id;
+  final String label;
+  final IconData icon;
+  final String description;
+
+  const DietPreference({
+    required this.id,
+    required this.label,
+    required this.icon,
+    required this.description,
+  });
 }

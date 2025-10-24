@@ -6,6 +6,10 @@ class UserModel extends Equatable {
   final String? displayName;
   final String? avatarUrl;
   final String? authProvider;
+  final int? age;
+  final double? height;
+  final String? heightUnit; // 'cm' or 'ft'
+  final String? gender; // 'male', 'female', 'other', 'prefer_not_to_say'
   final List<String> dietPreferences;
   final bool notificationEnabled;
   final String language;
@@ -22,6 +26,10 @@ class UserModel extends Equatable {
     this.displayName,
     this.avatarUrl,
     this.authProvider,
+    this.age,
+    this.height,
+    this.heightUnit,
+    this.gender,
     this.dietPreferences = const [],
     this.notificationEnabled = true,
     this.language = 'de',
@@ -40,6 +48,10 @@ class UserModel extends Equatable {
       displayName: json['display_name'] as String?,
       avatarUrl: json['avatar_url'] as String?,
       authProvider: json['auth_provider'] as String?,
+      age: json['age'] as int?,
+      height: json['height'] as double?,
+      heightUnit: json['height_unit'] as String?,
+      gender: json['gender'] as String?,
       dietPreferences: json['diet_preferences'] != null
           ? List<String>.from(json['diet_preferences'] as List)
           : [],
@@ -63,6 +75,10 @@ class UserModel extends Equatable {
       'display_name': displayName,
       'avatar_url': avatarUrl,
       'auth_provider': authProvider,
+      'age': age,
+      'height': height,
+      'height_unit': heightUnit,
+      'gender': gender,
       'diet_preferences': dietPreferences,
       'notification_enabled': notificationEnabled,
       'language': language,
@@ -81,6 +97,10 @@ class UserModel extends Equatable {
     String? displayName,
     String? avatarUrl,
     String? authProvider,
+    int? age,
+    double? height,
+    String? heightUnit,
+    String? gender,
     List<String>? dietPreferences,
     bool? notificationEnabled,
     String? language,
@@ -97,6 +117,10 @@ class UserModel extends Equatable {
       displayName: displayName ?? this.displayName,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       authProvider: authProvider ?? this.authProvider,
+      age: age ?? this.age,
+      height: height ?? this.height,
+      heightUnit: heightUnit ?? this.heightUnit,
+      gender: gender ?? this.gender,
       dietPreferences: dietPreferences ?? this.dietPreferences,
       notificationEnabled: notificationEnabled ?? this.notificationEnabled,
       language: language ?? this.language,
@@ -116,6 +140,10 @@ class UserModel extends Equatable {
         displayName,
         avatarUrl,
         authProvider,
+        age,
+        height,
+        heightUnit,
+        gender,
         dietPreferences,
         notificationEnabled,
         language,
