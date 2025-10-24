@@ -63,17 +63,17 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
 
 SPEC CHECKSUMS:
-  app_links: c3185399a5cabc2e610ee5ad52fb7269b84ff869
-  connectivity_plus: 18d3c32514c886e046de60e9c13895109866c747
-  flutter_local_notifications: 3805ca215b2fb7f397d78b66db91f6a747af52e4
-  flutter_secure_storage_macos: c2754d3483d20bb207bb9e5a14f1b8e771abcdb9
+  app_links: 05a6ec2341985eb05e9f97dc63f5837c39895c3f
+  connectivity_plus: e74b9f74717d2d99d45751750e266e55912baeb5
+  flutter_local_notifications: 453432cd6399a07d072885bc7828fb2307868856
+  flutter_secure_storage_macos: 7f45e30f838cf2659862a4e4e3ee1c347c2b3b54
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   ReachabilitySwift: 32793e867593cfc1177f5d16491e3a197d2fccda
-  share_plus: 76dd39142738f7a68dd57b05093b5e8193f220f7
-  shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
-  sqflite_darwin: 5a7236e3b501866c1c9befc6771dfd73ffb8702d
-  url_launcher_macos: c82c93949963e55b228a30115bd219499a6fe404
+  share_plus: 3c787998077d6b31e839225a282e9e27edf99274
+  shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
+  sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
+  url_launcher_macos: 0fba8ddabfc33ce0a9afe7c5fef5aab3d8d2d673
 
 PODFILE CHECKSUM: 497ca1db772812d37ec91192e4b1defefd6c2bab
 
