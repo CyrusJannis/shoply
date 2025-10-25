@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -171,23 +172,41 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           // Search/Add Bar
           Padding(
             padding: const EdgeInsets.all(AppDimensions.screenHorizontalPadding),
-            child: TextField(
+            child: AdaptiveTextField(
               controller: _searchController,
               focusNode: _focusNode,
-              autofocus: false,
+              placeholder: AppLocalizations.of(context).addItem,
               textInputAction: TextInputAction.done,
               textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                hintText: AppLocalizations.of(context).addItem,
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () => _showAddItemDialog(context),
-                ),
+              prefixIcon: Icon(
+                PlatformInfo.isIOS26OrHigher() ? null : Icons.search,
               ),
+              suffixIcon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_searchController.text.isNotEmpty)
+                    IconButton(
+                      icon: Icon(
+                        PlatformInfo.isIOS ? CupertinoIcons.clear_circled_solid : Icons.clear,
+                      ),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                      },
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle),
+                    onPressed: () => _showAddItemDialog(context),
+                  ),
+                ],
+              ),
+              onChanged: (value) {
+                setState(() {});
+              },
               onSubmitted: (value) {
                 if (value.trim().isNotEmpty) {
                   _quickAddItem(value.trim());
+                  _searchController.clear();
                   // Keep focus in text field after adding
                   _focusNode.requestFocus();
                 }
