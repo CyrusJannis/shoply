@@ -38,32 +38,33 @@ class MainScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
+    final isIOS26 = PlatformInfo.isIOS26OrHigher();
 
     return AdaptiveScaffold(
       body: child,
       minimizeBehavior: TabBarMinimizeBehavior.never, // Navbar bleibt immer gleich groß
       bottomNavigationBar: AdaptiveBottomNavigationBar(
-        useNativeBottomBar: true, // Native iOS 26 UITabBar with Liquid Glass
+        useNativeBottomBar: isIOS26, // Native iOS 26 UITabBar with Liquid Glass nur auf iOS26+
         selectedIndex: selectedIndex,
         onTap: (index) {
           HapticFeedback.lightImpact();
           _onItemTapped(context, index);
         },
-        items: const [
+        items: [
           AdaptiveNavigationDestination(
-            icon: 'house.fill',
+            icon: isIOS26 ? 'house.fill' : Icons.home,
             label: 'Home',
           ),
           AdaptiveNavigationDestination(
-            icon: 'sparkles',
+            icon: isIOS26 ? 'sparkles' : Icons.auto_awesome,
             label: 'AI',
           ),
           AdaptiveNavigationDestination(
-            icon: 'fork.knife',
+            icon: isIOS26 ? 'fork.knife' : Icons.restaurant,
             label: 'Rezepte',
           ),
           AdaptiveNavigationDestination(
-            icon: 'person.fill',
+            icon: isIOS26 ? 'person.fill' : Icons.person,
             label: 'Profil',
           ),
         ],
