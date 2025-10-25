@@ -13,10 +13,10 @@ packages:
     dependency: "direct main"
     description:
       name: adaptive_platform_ui
-      sha256: "6c1e55ca904a647285b067761d6a2fc1f62e646a72dab9524090a146e320cfda"
+      sha256: b0d4ea53d17884cbc9e5aa722737ce9cf0b19b1b0e880392d0bbb5e92d91e0d7
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.98"
+    version: "0.1.99"
   analyzer:
     dependency: transitive
     description:

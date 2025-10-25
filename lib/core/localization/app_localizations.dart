@@ -61,6 +61,21 @@ class AppLocalizations {
   String get getStarted => _localizedValues[locale.languageCode]!['get_started']!;
   String get forInternalTesters => _localizedValues[locale.languageCode]!['for_internal_testers']!;
 
+  // Delete confirmation
+  String get deleteListTitle => _localizedValues[locale.languageCode]!['delete_list_title']!;
+  String deleteListMessage(String listName) => _localizedValues[locale.languageCode]!['delete_list_message']!.replaceAll('{listName}', listName);
+  String get deleteConfirm => _localizedValues[locale.languageCode]!['delete_confirm']!;
+
+  // Sharing
+  String get share => _localizedValues[locale.languageCode]!['share']!;
+  String get showCode => _localizedValues[locale.languageCode]!['show_code']!;
+  String get copy => _localizedValues[locale.languageCode]!['copy']!;
+  String get copyAndContinue => _localizedValues[locale.languageCode]!['copy_and_continue']!;
+  String get shareDialogTitle => _localizedValues[locale.languageCode]!['share_dialog_title']!;
+  String shareDialogMessage(String code) => _localizedValues[locale.languageCode]!['share_dialog_message']!.replaceAll('{code}', code);
+  String get shareCodeTitle => _localizedValues[locale.languageCode]!['share_code_title']!;
+  String get shareCodeMessage => _localizedValues[locale.languageCode]!['share_code_message']!;
+
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'app_name': 'Shoply',
@@ -101,6 +116,19 @@ class AppLocalizations {
       'whats_new_subtitle': 'Discover the new features',
       'get_started': 'Get Started!',
       'for_internal_testers': 'For Internal Testers',
+      // Delete confirmation
+      'delete_list_title': 'Delete List?',
+      'delete_list_message': 'Are you sure you want to delete "{listName}"? This action cannot be undone.',
+      'delete_confirm': 'Delete',
+      // Sharing
+      'share': 'Share',
+      'show_code': 'Show Code',
+      'copy': 'Copy',
+      'copy_and_continue': 'Copy & Continue',
+      'share_dialog_title': 'Share List',
+      'share_dialog_message': 'Share this code to invite others: {code}',
+      'share_code_title': 'Share Code',
+      'share_code_message': 'Use this code to join the list.',
     },
     'de': {
       'app_name': 'Shoply',
@@ -141,6 +169,19 @@ class AppLocalizations {
       'whats_new_subtitle': 'Entdecke die neuen Features',
       'get_started': 'Los geht\'s!',
       'for_internal_testers': 'Für interne Tester',
+      // Delete confirmation
+      'delete_list_title': 'Liste löschen?',
+      'delete_list_message': 'Bist du sicher, dass du "{listName}" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.',
+      'delete_confirm': 'Löschen',
+      // Sharing
+      'share': 'Teilen',
+      'show_code': 'Code anzeigen',
+      'copy': 'Kopieren',
+      'copy_and_continue': 'Kopieren & Fortfahren',
+      'share_dialog_title': 'Liste teilen',
+      'share_dialog_message': 'Teile diesen Code, um andere einzuladen: {code}',
+      'share_code_title': 'Freigabecode',
+      'share_code_message': 'Nutze diesen Code, um der Liste beizutreten.',
     },
   };
 }

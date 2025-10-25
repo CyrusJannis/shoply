@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
@@ -100,43 +101,68 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           ),
         ),
         actions: [
-          // View All Lists button
-          IconButton(
-            icon: const Icon(Icons.view_list_rounded),
-            tooltip: 'View All Lists',
-            onPressed: () => context.push('/home'),
+          // Sort button - iOS26 style with glass design
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: AdaptivePopupMenuButton.icon(
+              icon: PlatformInfo.isIOS26OrHigher() ? 'arrow.up.arrow.down' : Icons.sort,
+              buttonStyle: PopupButtonStyle.glass,
+              items: [
+                AdaptivePopupMenuItem(
+                  label: AppLocalizations.of(context).sortByCategory,
+                  icon: Icons.category,
+                ),
+                AdaptivePopupMenuItem(
+                  label: AppLocalizations.of(context).sortAlphabetically,
+                  icon: Icons.sort_by_alpha,
+                ),
+                AdaptivePopupMenuItem(
+                  label: AppLocalizations.of(context).sortByQuantity,
+                  icon: Icons.numbers,
+                ),
+                AdaptivePopupMenuItem(
+                  label: AppLocalizations.of(context).customSort,
+                  icon: Icons.tune,
+                ),
+              ],
+              onSelected: (index, entry) {
+                final sortModes = ['category', 'alphabetical', 'quantity', 'custom'];
+                setState(() {
+                  _sortMode = sortModes[index];
+                });
+              },
+            ),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'sort') {
-                _showSortOptions(context);
-              } else if (value == 'share') {
-                _showShareDialog(context);
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'sort',
-                child: Row(
-                  children: [
-                    Icon(Icons.sort),
-                    SizedBox(width: 8),
-                    Text('Sort'),
-                  ],
+          // Share button - iOS26 style with glass design
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: AdaptivePopupMenuButton.icon(
+              icon: PlatformInfo.isIOS26OrHigher() ? 'square.and.arrow.up' : Icons.share,
+              buttonStyle: PopupButtonStyle.glass,
+              items: [
+                AdaptivePopupMenuItem(
+                  label: AppLocalizations.of(context).showCode,
+                  icon: Icons.qr_code,
                 ),
-              ),
-              const PopupMenuItem(
-                value: 'share',
-                child: Row(
-                  children: [
-                    Icon(Icons.share),
-                    SizedBox(width: 8),
-                    Text('Share List'),
-                  ],
+                AdaptivePopupMenuItem(
+                  label: AppLocalizations.of(context).share,
+                  icon: Icons.share,
                 ),
-              ),
-            ],
+                const AdaptivePopupMenuDivider(),
+                AdaptivePopupMenuItem(
+                  label: AppLocalizations.of(context).cancel,
+                  icon: Icons.close,
+                ),
+              ],
+              onSelected: (index, entry) {
+                if (index == 0) {
+                  _showShareCodeDialog();
+                } else if (index == 1) {
+                  _onShareSelected();
+                }
+                // index 2 is divider, index 3 is cancel - do nothing
+              },
+            ),
           ),
         ],
       ),
@@ -341,25 +367,6 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
         'items': categoryMap[category]!,
       };
     }).toList();
-  }
-
-  void _reorderItemsInCategory(
-    List<ShoppingItemModel> categoryItems,
-    int oldIndex,
-    int newIndex,
-  ) {
-    // Adjust newIndex if moving down
-    if (newIndex > oldIndex) {
-      newIndex -= 1;
-    }
-
-    // Reorder the items
-    final item = categoryItems.removeAt(oldIndex);
-    categoryItems.insert(newIndex, item);
-
-    // Update sort order in database
-    final itemIds = categoryItems.map((item) => item.id).toList();
-    ref.read(itemsNotifierProvider(widget.listId).notifier).updateSortOrder(itemIds);
   }
 
   List<ShoppingItemModel> _sortItems(List<ShoppingItemModel> items) {
@@ -656,168 +663,87 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
     );
   }
 
-  void _showSortOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.swap_vert),
-            title: Text(AppLocalizations.of(context).customSort),
-            trailing: _sortMode == 'custom' ? const Icon(Icons.check) : null,
-            onTap: () {
-              setState(() => _sortMode = 'custom');
-              Navigator.pop(context);
+  Future<void> _showShareCodeDialog() async {
+    try {
+      final code = await ref
+          .read(listsNotifierProvider.notifier)
+          .generateShareCode(widget.listId);
+
+      AdaptiveAlertDialog.show(
+        context: context,
+        title: AppLocalizations.of(context).shareCodeTitle,
+        message: '${AppLocalizations.of(context).shareCodeMessage}\n\n$code',
+        icon: PlatformInfo.isIOS26OrHigher() ? 'qrcode' : Icons.qr_code,
+        actions: [
+          AlertAction(
+            title: AppLocalizations.of(context).cancel,
+            style: AlertActionStyle.cancel,
+            onPressed: () {},
+          ),
+          AlertAction(
+            title: AppLocalizations.of(context).copy,
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: code));
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.category),
-            title: Text(AppLocalizations.of(context).sortByCategory),
-            trailing: _sortMode == 'category' ? const Icon(Icons.check) : null,
-            onTap: () {
-              setState(() => _sortMode = 'category');
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.sort_by_alpha),
-            title: Text(AppLocalizations.of(context).sortAlphabetically),
-            trailing: _sortMode == 'alphabetical' ? const Icon(Icons.check) : null,
-            onTap: () {
-              setState(() => _sortMode = 'alphabetical');
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.numbers),
-            title: Text(AppLocalizations.of(context).sortByQuantity),
-            trailing: _sortMode == 'quantity' ? const Icon(Icons.check) : null,
-            onTap: () {
-              setState(() => _sortMode = 'quantity');
-              Navigator.pop(context);
+          AlertAction(
+            title: AppLocalizations.of(context).share,
+            style: AlertActionStyle.primary,
+            onPressed: () {
+              _shareListViaSystem(code);
             },
           ),
         ],
-      ),
-    );
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler: $e')),
+        );
+      }
+    }
   }
 
-  void _showShareDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context).shareList),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Erstelle einen Freigabecode, um andere zu dieser Liste einzuladen.'),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () async {
-                try {
-                  final code = await ref
-                      .read(listsNotifierProvider.notifier)
-                      .generateShareCode(widget.listId);
-                  
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Freigabecode'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Teile diesen Code mit anderen:'),
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: SelectableText(
-                                code,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 2,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Code läuft in 24 Stunden ab',
-                              style: TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                            const SizedBox(height: 16),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              alignment: WrapAlignment.center,
-                              children: [
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    Clipboard.setData(ClipboardData(text: code));
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Code in Zwischenablage kopiert')),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.copy, size: 18),
-                                  label: const Text('Kopieren'),
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  ),
-                                ),
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    Share.share(
-                                      'Trete meiner Einkaufsliste bei mit Code: $code\n\nÖffne die ShoplyAI App und tippe auf "Liste beitreten" um diesen Code einzugeben.',
-                                      subject: 'Meine ShoplyAI Liste',
-                                    );
-                                  },
-                                  icon: const Icon(Icons.share, size: 18),
-                                  label: const Text('Teilen'),
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Schließen'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Fehler: $e')),
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Icons.qr_code),
-              label: const Text('Freigabecode erstellen'),
-            ),
-          ],
-        ),
+  Future<void> _onShareSelected() async {
+    try {
+      final code = await ref
+          .read(listsNotifierProvider.notifier)
+          .generateShareCode(widget.listId);
+
+      AdaptiveAlertDialog.show(
+        context: context,
+        title: AppLocalizations.of(context).shareDialogTitle,
+        message: AppLocalizations.of(context).shareDialogMessage(code),
+        icon: PlatformInfo.isIOS26OrHigher() ? 'square.and.arrow.up' : Icons.share,
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context).cancel),
+          AlertAction(
+            title: AppLocalizations.of(context).cancel,
+            style: AlertActionStyle.cancel,
+            onPressed: () {},
+          ),
+          AlertAction(
+            title: AppLocalizations.of(context).share,
+            onPressed: () {
+              _shareListViaSystem(code);
+            },
+          ),
+          AlertAction(
+            title: AppLocalizations.of(context).copyAndContinue,
+            style: AlertActionStyle.primary,
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: code));
+              _shareListViaSystem(code);
+            },
           ),
         ],
-      ),
-    );
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _addItemFromRecommendation(
@@ -937,5 +863,16 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
         );
       }
     }
+  }
+
+  void _shareListViaSystem([String? code]) {
+    final base = 'Schau dir meine Einkaufsliste "${widget.listName}" an!';
+    final withCode = code != null && code.isNotEmpty
+        ? '\n\nTrete mit diesem Code bei: $code\nÖffne ShoplyAI und tippe auf "Liste beitreten".'
+        : '\n\nLade ShoplyAI herunter und trete meiner Liste bei.';
+    Share.share(
+      '$base $withCode',
+      subject: 'Meine ShoplyAI Einkaufsliste',
+    );
   }
 }

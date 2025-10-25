@@ -16,7 +16,8 @@ dependencies:
   # UI & Icons
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.0.9
-  adaptive_platform_ui: ^0.1.98
+  adaptive_platform_ui: ^0.1.99
+  # liquid_glass_renderer removed; AdaptiveAlertDialog handles native iOS26 styling
   
   # State Management
   flutter_riverpod: ^2.4.9
