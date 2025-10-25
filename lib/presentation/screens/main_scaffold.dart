@@ -38,13 +38,13 @@ class MainScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
-    final isIOS26 = PlatformInfo.isIOS26OrHigher();
+  final isIOS26 = PlatformInfo.isIOS26OrHigher();
 
     return AdaptiveScaffold(
       body: child,
       minimizeBehavior: TabBarMinimizeBehavior.never, // Navbar bleibt immer gleich groß
       bottomNavigationBar: AdaptiveBottomNavigationBar(
-        useNativeBottomBar: isIOS26, // Native iOS 26 UITabBar with Liquid Glass nur auf iOS26+
+        useNativeBottomBar: false, // Deaktiviert native Liquid Glass (Performance-Fallback)
         selectedIndex: selectedIndex,
         onTap: (index) {
           HapticFeedback.lightImpact();

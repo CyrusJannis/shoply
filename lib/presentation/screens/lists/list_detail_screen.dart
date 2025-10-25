@@ -107,7 +107,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
             padding: const EdgeInsets.only(right: 8),
             child: AdaptivePopupMenuButton.icon(
               icon: PlatformInfo.isIOS26OrHigher() ? 'arrow.up.arrow.down' : Icons.sort,
-              buttonStyle: PopupButtonStyle.glass,
+              buttonStyle: PopupButtonStyle.plain,
               items: [
                 AdaptivePopupMenuItem(
                   label: AppLocalizations.of(context).sortByCategory,
@@ -139,7 +139,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
             padding: const EdgeInsets.only(right: 12),
             child: AdaptivePopupMenuButton.icon(
               icon: PlatformInfo.isIOS26OrHigher() ? 'square.and.arrow.up' : Icons.share,
-              buttonStyle: PopupButtonStyle.glass,
+              buttonStyle: PopupButtonStyle.plain,
               items: [
                 AdaptivePopupMenuItem(
                   label: AppLocalizations.of(context).showCode,
