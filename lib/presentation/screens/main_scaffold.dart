@@ -41,6 +41,7 @@ class MainScaffold extends StatelessWidget {
 
     return AdaptiveScaffold(
       body: child,
+      minimizeBehavior: TabBarMinimizeBehavior.never, // Navbar bleibt immer gleich groß
       bottomNavigationBar: AdaptiveBottomNavigationBar(
         useNativeBottomBar: true, // Native iOS 26 UITabBar with Liquid Glass
         selectedIndex: selectedIndex,
