@@ -295,25 +295,22 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
               },
             ),
           ),
-          // Share button - iOS26 liquid glass style
+          // Share button - iOS26 liquid glass style, regular icon for other platforms
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: Platform.isIOS
+            child: (Platform.isIOS && PlatformInfo.isIOS26OrHigher())
                 ? AdaptiveButton.sfSymbol(
                     sfSymbol: const SFSymbol('square.and.arrow.up'),
                     style: AdaptiveButtonStyle.glass,
                     onPressed: _showShareDialog,
                   )
-                : GestureDetector(
-                    onTap: _showShareDialog,
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Icon(
-                        Icons.share_rounded,
-                        size: 22,
-                        color: AppColors.textPrimary(context),
-                      ),
+                : IconButton(
+                    icon: Icon(
+                      Icons.share_rounded,
+                      size: 22,
+                      color: AppColors.textPrimary(context),
                     ),
+                    onPressed: _showShareDialog,
                   ),
           ),
         ],

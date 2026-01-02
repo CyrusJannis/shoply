@@ -786,7 +786,7 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
         title: Text(
           category.isCustom 
               ? category.name 
-              : context.tr('category_${category.id}'),
+              : Categories.getById(category.id).getName(Localizations.localeOf(context).languageCode),
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
