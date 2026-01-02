@@ -1,0 +1,2251 @@
+import 'dart:ui';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
+import 'package:shoply/core/constants/app_colors.dart';
+import 'package:shoply/core/constants/app_dimensions.dart';
+import 'package:shoply/core/constants/app_text_styles.dart';
+import 'package:shoply/core/constants/categories.dart';
+import 'package:shoply/core/localization/app_localizations.dart';
+import 'package:shoply/core/localization/localization_helper.dart';
+import 'package:shoply/core/utils/diet_checker.dart';
+import 'package:shoply/data/models/shopping_item_model.dart';
+import 'package:shoply/data/services/shopping_history_service.dart';
+import 'package:shoply/data/services/purchase_tracking_service.dart';
+import 'package:shoply/data/services/supabase_service.dart';
+import 'package:shoply/data/services/notification_service.dart';
+import 'package:shoply/presentation/state/auth_provider.dart';
+import 'package:shoply/presentation/state/items_provider.dart';
+import 'package:shoply/presentation/state/lists_provider.dart';
+import 'package:shoply/presentation/state/last_list_provider.dart';
+import 'package:shoply/presentation/widgets/common/empty_state.dart';
+import 'package:shoply/presentation/widgets/common/loading_indicator.dart';
+import 'package:shoply/presentation/widgets/recommendations/ml_recommendations_section.dart';
+import 'package:shoply/presentation/screens/lists/widgets/background_selection_sheet.dart';
+import 'package:shoply/presentation/screens/lists/category_order_screen.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shoply/data/services/unread_service.dart'; // Neu
+import 'package:flutter_app_badger/flutter_app_badger.dart'; // Neu
+import 'package:shoply/data/services/dynamic_tutorial_service.dart';
+import 'package:shoply/presentation/screens/lists/list_settings_screen.dart';
+import 'package:shoply/data/repositories/list_repository.dart';
+
+class ListDetailScreen extends ConsumerStatefulWidget {
+  final String listId;
+  final String listName;
+
+  const ListDetailScreen({
+    super.key,
+    required this.listId,
+    required this.listName,
+  });
+
+  @override
+  ConsumerState<ListDetailScreen> createState() => _ListDetailScreenState();
+}
+
+class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
+  final _searchController = TextEditingController();
+  final _focusNode = FocusNode();
+  final _scrollController = ScrollController();
+  late String _listName;
+  
+  // Drag and drop state
+  ShoppingItemModel? _draggedItem;
+  String? _draggedFromCategory;
+  bool _isDragging = false;
+  
+  // Auto-scroll state
+  bool _isAutoScrolling = false;
+  
+  // Custom categories cache
+  List<CustomCategory> _customCategories = [];
+  bool _customCategoriesLoaded = false;
+  
+  // List owner info
+  String? _ownerId;
+
+  /// Auto-scroll the list when dragging near edges
+  void _handleAutoScroll(double globalY) {
+    if (!_isDragging || !_scrollController.hasClients) return;
+    
+    final screenHeight = MediaQuery.of(context).size.height;
+    final scrollEdgeThreshold = 80.0; // Distance from edge to start scrolling
+    final scrollSpeed = 8.0; // Pixels per tick
+    
+    // Top edge detection
+    if (globalY < scrollEdgeThreshold + MediaQuery.of(context).padding.top + kToolbarHeight) {
+      if (!_isAutoScrolling) {
+        _isAutoScrolling = true;
+        _autoScrollUp();
+      }
+    }
+    // Bottom edge detection
+    else if (globalY > screenHeight - scrollEdgeThreshold - MediaQuery.of(context).padding.bottom) {
+      if (!_isAutoScrolling) {
+        _isAutoScrolling = true;
+        _autoScrollDown();
+      }
+    }
+    // Not near edges - stop auto-scrolling
+    else {
+      _isAutoScrolling = false;
+    }
+  }
+  
+  void _autoScrollUp() async {
+    while (_isAutoScrolling && _isDragging && _scrollController.hasClients) {
+      final currentOffset = _scrollController.offset;
+      if (currentOffset <= 0) {
+        _isAutoScrolling = false;
+        break;
+      }
+      
+      final newOffset = (currentOffset - 8.0).clamp(0.0, _scrollController.position.maxScrollExtent);
+      _scrollController.jumpTo(newOffset);
+      await Future.delayed(const Duration(milliseconds: 16)); // ~60fps
+    }
+  }
+  
+  void _autoScrollDown() async {
+    while (_isAutoScrolling && _isDragging && _scrollController.hasClients) {
+      final currentOffset = _scrollController.offset;
+      final maxOffset = _scrollController.position.maxScrollExtent;
+      if (currentOffset >= maxOffset) {
+        _isAutoScrolling = false;
+        break;
+      }
+      
+      final newOffset = (currentOffset + 8.0).clamp(0.0, maxOffset);
+      _scrollController.jumpTo(newOffset);
+      await Future.delayed(const Duration(milliseconds: 16)); // ~60fps
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _listName = widget.listName;
+    // Reload items when entering the list
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(itemsNotifierProvider(widget.listId).notifier).loadItems();
+      // Track this list as last accessed
+      ref.read(lastAccessedListProvider.notifier).setLastAccessedList(widget.listId);
+      _markAsRead(); // Mark as read & clear badge
+      
+      // Notify tutorial that list was opened
+      DynamicTutorialService.instance.onListOpened();
+      
+      // Load custom categories
+      _loadCustomCategories();
+      
+      // Load list owner info
+      _loadListOwner();
+    });
+  }
+  
+  Future<void> _loadListOwner() async {
+    try {
+      final list = await ListRepository.instance.getListById(widget.listId);
+      if (mounted && list != null) {
+        setState(() => _ownerId = list.ownerId);
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to load list owner: $e');
+    }
+  }
+  
+  Future<void> _loadCustomCategories() async {
+    final categories = await CategoryOrderService().getCustomCategories(widget.listId);
+    if (mounted) {
+      setState(() {
+        _customCategories = categories;
+        _customCategoriesLoaded = true;
+      });
+    }
+  }
+
+  Future<void> _markAsRead() async {
+    // 1. Internen Status (roter Punkt) löschen
+    await UnreadService().markAsRead(widget.listId);
+    
+    // 2. App Icon Badge löschen
+    try {
+        if (await FlutterAppBadger.isAppBadgeSupported()) {
+            FlutterAppBadger.removeBadge();
+        }
+    } catch (e) {
+        debugPrint('Failed to remove badge: $e');
+    }
+    
+    // 3. Notifications löschen (für sauberes Notification Center)
+    await NotificationService.instance.cancelAll();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _focusNode.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final itemsAsync = ref.watch(itemsNotifierProvider(widget.listId));
+
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        centerTitle: true,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        backgroundColor: Colors.transparent,
+        title: Text(
+          _listName,
+          style: AppTextStyles.h2.copyWith(
+            fontWeight: FontWeight.w800,
+            fontSize: 26,
+          ),
+        ),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: Center(
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(
+                  PlatformInfo.isIOS26OrHigher() ? Icons.chevron_left : Icons.arrow_back,
+                  size: 24,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.borderRadiusMedium),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          // Settings button - iOS26 style with glass design
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: AdaptivePopupMenuButton.icon(
+              icon: PlatformInfo.isIOS26OrHigher() ? 'gearshape.fill' : Icons.settings,
+              buttonStyle: PopupButtonStyle.glass,
+              items: [
+                AdaptivePopupMenuItem(
+                  label: context.tr('rename_list'),
+                  icon: PlatformInfo.isIOS26OrHigher() ? 'pencil' : Icons.edit,
+                ),
+                AdaptivePopupMenuItem(
+                  label: context.tr('change_background'),
+                  icon: PlatformInfo.isIOS26OrHigher() ? 'photo.fill' : Icons.image,
+                ),
+                AdaptivePopupMenuItem(
+                  label: context.tr('category_order'),
+                  icon: PlatformInfo.isIOS26OrHigher() ? 'list.bullet.indent' : Icons.reorder,
+                ),
+                AdaptivePopupMenuItem(
+                  label: context.tr('list_settings'),
+                  icon: PlatformInfo.isIOS26OrHigher() ? 'gearshape' : Icons.settings,
+                ),
+              ],
+              onSelected: (index, entry) {
+                if (index == 0) {
+                  _showRenameListDialog();
+                } else if (index == 1) {
+                  _showBackgroundSelectionDialog();
+                } else if (index == 2) {
+                  _showCategoryOrderScreen();
+                } else if (index == 3) {
+                  _showListSettingsScreen();
+                }
+              },
+            ),
+          ),
+          // Share button - iOS26 style without background
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: _showShareDialog,
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Icon(
+                  Icons.share_rounded,
+                  size: 22,
+                  color: AppColors.textPrimary(context),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Search/Add Bar - Modern pill-shaped design
+          Container(
+            key: DynamicTutorialService.instance.addItemInputKey,
+            margin: const EdgeInsets.fromLTRB(
+              AppDimensions.screenHorizontalPadding,
+              AppDimensions.paddingMedium,
+              AppDimensions.screenHorizontalPadding,
+              12,
+            ),
+            height: 56,
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.light
+                  ? AppColors.lightCardBackground
+                  : AppColors.darkCardBackground,
+              borderRadius: BorderRadius.circular(AppDimensions.cardBorderRadius),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.lightShadow.withOpacity(0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              focusNode: _focusNode,
+              autofocus: false,
+              textInputAction: TextInputAction.done,
+              textCapitalization: TextCapitalization.sentences,
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).brightness == Brightness.light
+                    ? AppColors.lightTextPrimary
+                    : AppColors.darkTextPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: AppLocalizations.of(context).addItem,
+                hintStyle: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.light
+                      ? AppColors.lightTextSecondary
+                      : AppColors.darkTextSecondary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                ),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 20, right: 12),
+                  child: Icon(
+                    Icons.search_rounded,
+                    size: 24,
+                    color: Theme.of(context).brightness == Brightness.light
+                        ? AppColors.lightTextSecondary
+                        : AppColors.darkTextSecondary,
+                  ),
+                ),
+                suffixIcon: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentColor(context),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.add_rounded, size: 22),
+                      color: Colors.white,
+                      onPressed: () => _showAddItemDialog(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      splashRadius: 20,
+                    ),
+                  ),
+                ),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 0,
+                  vertical: 16,
+                ),
+              ),
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  final itemName = value.trim();
+                  _searchController.clear(); // Clear FIRST to prevent re-triggering
+                  _quickAddItem(itemName);
+                  // Keep focus in text field after adding
+                  _focusNode.requestFocus();
+                }
+              },
+            ),
+          ),
+
+          // Items List
+          Expanded(
+            key: DynamicTutorialService.instance.listItemsAreaKey,
+            child: itemsAsync.when(
+              data: (items) {
+                // Update tutorial with list items data
+                DynamicTutorialService.instance.updateListItemsData(hasItems: items.isNotEmpty);
+                if (items.isEmpty) {
+                  return EmptyState(
+                    icon: Icons.shopping_cart,
+                    title: AppLocalizations.of(context).emptyList,
+                    subtitle: 'Füge Produkte hinzu, um mit dem Einkaufen zu beginnen',
+                    actionText: AppLocalizations.of(context).addItem,
+                    onActionPressed: () => _showAddItemDialog(context),
+                  );
+                }
+
+                // Group items by category
+                final groupedItems = _groupItemsByCategory(items);
+
+                return NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    // Keyboard schließen beim Scrollen
+                    if (notification is ScrollStartNotification) {
+                      FocusScope.of(context).unfocus();
+                    }
+                    return false;
+                  },
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: EdgeInsets.only(
+                      left: AppDimensions.screenHorizontalPadding,
+                      right: AppDimensions.screenHorizontalPadding,
+                      bottom: 120 + MediaQuery.of(context).padding.bottom, // Navigation Bar + Safe Area
+                    ),
+                    itemCount: groupedItems.length + 2, // +1 for recommendations, +1 for Complete Button
+                  itemBuilder: (context, index) {
+                    // ML-powered AI Recommendations Section at the top
+                    if (index == 0) {
+                      return MLRecommendationsSection(
+                        listId: widget.listId,
+                        onAddItem: (itemName, category, quantity) {
+                          _addItemFromRecommendation(itemName, category, quantity);
+                        },
+                      );
+                    }
+                    
+                    // Complete Shopping Button am Ende
+                    if (index == groupedItems.length + 1) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 24, bottom: 24),
+                        child: ElevatedButton(
+                          onPressed: () => _completeShoppingTrip(context, ref, items),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accentColor(context),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppDimensions.buttonBorderRadius),
+                            ),
+                          ),
+                          child: Text(
+                            AppLocalizations.of(context).completeShopping,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    final entry = groupedItems[index - 1]; // -1 because recommendations is at index 0
+                    final category = entry['category'] as String;
+                    final categoryId = entry['category_id'] as String;
+                    final categoryItems = entry['items'] as List<ShoppingItemModel>;
+                    final categoryColor = entry['category_color'] as Color;
+                    final categoryIcon = entry['category_icon'] as IconData;
+                    final isCustomCategory = entry['is_custom'] as bool;
+
+                    return _buildCategorySection(
+                      category: category,
+                      categoryId: categoryId,
+                      categoryItems: categoryItems,
+                      categoryColor: categoryColor,
+                      categoryIcon: categoryIcon,
+                      isCustomCategory: isCustomCategory,
+                    );
+                  },
+                  ),
+                );
+              },
+              loading: () => LoadingIndicator(message: context.tr('loading_items')),
+              error: (error, stack) => Center(
+                child: Text('Error: $error'),
+              ),
+            ),
+          ),
+        ],
+      ),
+      // FloatingActionButton removed - add items via search bar
+    );
+  }
+  
+  /// Build a category section with drag target for receiving items
+  Widget _buildCategorySection({
+    required String category,
+    required String categoryId,
+    required List<ShoppingItemModel> categoryItems,
+    required Color categoryColor,
+    required IconData categoryIcon,
+    required bool isCustomCategory,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return DragTarget<ShoppingItemModel>(
+      onWillAcceptWithDetails: (details) {
+        // Accept if dragged from a different category
+        return _draggedFromCategory != categoryId;
+      },
+      onAcceptWithDetails: (details) async {
+        final item = details.data;
+        // Update item's category
+        await ref.read(itemsNotifierProvider(widget.listId).notifier).updateItem(
+          item.id,
+          {'category_id': categoryId},
+        );
+        HapticFeedback.mediumImpact();
+        setState(() {
+          _isDragging = false;
+          _draggedItem = null;
+          _draggedFromCategory = null;
+        });
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovering = candidateData.isNotEmpty;
+        
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: isHovering ? BoxDecoration(
+            color: categoryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: categoryColor.withValues(alpha: 0.5),
+              width: 2,
+            ),
+          ) : null,
+          padding: isHovering ? const EdgeInsets.all(8) : EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Category Header
+              if (category.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: AppDimensions.spacingLarge,
+                    bottom: AppDimensions.spacingSmall,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: categoryColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          categoryIcon,
+                          size: 20,
+                          color: categoryColor,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          category,
+                          style: AppTextStyles.h3.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentColor(context).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${categoryItems.length}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.accentColor(context),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              // Items List or empty state for custom categories
+              if (categoryItems.isEmpty && isCustomCategory)
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                      style: BorderStyle.solid,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.drag_indicator_rounded,
+                        size: 18,
+                        color: isDark ? Colors.grey.shade600 : Colors.grey.shade500,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.tr('drag_items_here'),
+                        style: TextStyle(
+                          color: isDark ? Colors.grey.shade500 : Colors.grey.shade600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: categoryItems.length,
+                  itemBuilder: (context, index) {
+                    return _buildDraggableItemTile(categoryItems[index], index, categoryId);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  List<Map<String, dynamic>> _groupItemsByCategory(List<ShoppingItemModel> items) {
+    // Get user's language
+    final locale = Localizations.localeOf(context);
+    final languageCode = locale.languageCode;
+    
+    // Group items by category ID (including custom categories)
+    final Map<String, List<ShoppingItemModel>> categoryMap = {};
+    
+    // First, add all custom categories (even empty ones) so they're always visible
+    for (final customCat in _customCategories) {
+      categoryMap[customCat.id] = [];
+    }
+    
+    for (final item in items) {
+      // Prefer new category_id field, fallback to legacy category field
+      String categoryId = item.categoryId ?? item.category ?? 'other';
+      
+      // If it's not a valid built-in ID and not a custom ID, try to convert name → ID
+      if (!Categories.allIds.contains(categoryId) && !categoryId.startsWith('custom_')) {
+        categoryId = Categories.getIdByName(categoryId, languageCode) ?? 'other';
+      }
+      
+      if (!categoryMap.containsKey(categoryId)) {
+        categoryMap[categoryId] = [];
+      }
+      categoryMap[categoryId]!.add(item);
+    }
+
+    // Build sorted list: custom categories first, then built-in categories
+    final sortedCategories = <String>[];
+    
+    // Add custom categories first (in order they were created)
+    for (final customCat in _customCategories) {
+      if (!sortedCategories.contains(customCat.id)) {
+        sortedCategories.add(customCat.id);
+      }
+    }
+    
+    // Then add built-in categories that have items
+    for (final category in Categories.all) {
+      if (categoryMap.containsKey(category.id) && categoryMap[category.id]!.isNotEmpty) {
+        sortedCategories.add(category.id);
+      }
+    }
+
+    // Convert to list of maps for ListView
+    return sortedCategories.map((categoryId) {
+      // Sort items by order_index within each category
+      final categoryItems = categoryMap[categoryId] ?? [];
+      final sortedItems = List<ShoppingItemModel>.from(categoryItems);
+      sortedItems.sort((a, b) {
+        final aIndex = a.orderIndex ?? a.sortOrder ?? 999;
+        final bIndex = b.orderIndex ?? b.sortOrder ?? 999;
+        return aIndex.compareTo(bIndex);
+      });
+      
+      // Get category display info
+      String categoryName;
+      Color categoryColor;
+      IconData categoryIcon;
+      bool isCustom = false;
+      
+      if (categoryId.startsWith('custom_')) {
+        // Find the custom category
+        final customCat = _customCategories.firstWhere(
+          (c) => c.id == categoryId,
+          orElse: () => CustomCategory(id: categoryId, name: 'Unknown', color: Colors.grey),
+        );
+        categoryName = customCat.name;
+        categoryColor = customCat.color;
+        categoryIcon = Icons.label_rounded;
+        isCustom = true;
+      } else {
+        final categoryData = Categories.getById(categoryId);
+        categoryName = categoryData.getName(languageCode);
+        categoryColor = categoryData.color;
+        categoryIcon = categoryData.icon;
+      }
+      
+      return {
+        'category': categoryName,
+        'category_id': categoryId,
+        'category_color': categoryColor,
+        'category_icon': categoryIcon,
+        'is_custom': isCustom,
+        'items': sortedItems,
+      };
+    }).toList();
+  }
+
+  void _quickAddItem(String name) async {
+    print('🚀🚀🚀 [LIST_DETAIL] _quickAddItem CALLED for "$name"');
+    print('🚀 [LIST_DETAIL] listId: ${widget.listId}');
+    
+    try {
+      final user = ref.read(currentUserProvider).value;
+      
+      // Let Gemini handle categorization automatically (category: null)
+      // ItemRepository will call GeminiCategorizationService if category is null
+      
+      final isDietWarning = user != null
+          ? DietChecker.checkDietWarning(name, user.dietPreferences)
+          : false;
+
+      print('🚀 [LIST_DETAIL] Calling itemsNotifierProvider.addItem...');
+      await ref.read(itemsNotifierProvider(widget.listId).notifier).addItem(
+            name: name,
+            category: null, // Let Gemini categorize automatically
+            isDietWarning: isDietWarning,
+          );
+
+      print('✅ [LIST_DETAIL] Successfully added item: $name');
+    } catch (e) {
+      print('❌ [LIST_DETAIL] Failed to add item "$name": $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.tr('error_adding', params: {'error': e.toString()})),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+
+    // Note: No need to invalidate listsNotifierProvider - the itemsNotifierProvider
+    // already handles state updates and the list count will update automatically
+  }
+
+  void _showAddItemDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final quantityController = TextEditingController(text: '1');
+    final notesController = TextEditingController();
+    String? selectedUnit;
+
+    final sheetColor = AppColors.surface(context);
+    final inputFillColor = AppColors.inputFill(context);
+    final borderColor = AppColors.border(context);
+    final textPrimary = AppColors.textPrimary(context);
+    final textSecondary = AppColors.textSecondary(context);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: sheetColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 24,
+          right: 24,
+          top: 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: textSecondary.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              AppLocalizations.of(context).addItem,
+              style: TextStyle(
+                color: textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            TextField(
+              controller: nameController,
+              style: TextStyle(color: textPrimary),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).itemName,
+                labelStyle: TextStyle(color: textSecondary),
+                hintText: 'z.B. Milch, Brot, Äpfel',
+                hintStyle: TextStyle(color: textSecondary.withOpacity(0.6)),
+                filled: true,
+                fillColor: inputFillColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.accent),
+                ),
+              ),
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            
+            const SizedBox(height: 16),
+            
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: quantityController,
+                    style: TextStyle(color: textPrimary),
+                    decoration: InputDecoration(
+                      labelText: 'Quantity',
+                      labelStyle: TextStyle(color: textSecondary),
+                      filled: true,
+                      fillColor: inputFillColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.accent),
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedUnit,
+                    dropdownColor: sheetColor,
+                    style: TextStyle(color: textPrimary),
+                    decoration: InputDecoration(
+                      labelText: 'Unit',
+                      labelStyle: TextStyle(color: textSecondary),
+                      filled: true,
+                      fillColor: inputFillColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                    ),
+                    items: ['pcs', 'kg', 'g', 'l', 'ml', 'pack']
+                        .map((unit) => DropdownMenuItem(
+                              value: unit,
+                              child: Text(unit),
+                            ))
+                        .toList(),
+                    onChanged: (value) => selectedUnit = value,
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
+            TextField(
+              controller: notesController,
+              style: TextStyle(color: textPrimary),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).notes,
+                labelStyle: TextStyle(color: textSecondary),
+                hintText: 'z.B. Bio, Vollmilch, 1l',
+                hintStyle: TextStyle(color: textSecondary.withOpacity(0.6)),
+                filled: true,
+                fillColor: inputFillColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.accent),
+                ),
+              ),
+              maxLines: 2,
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            
+            const SizedBox(height: 24),
+            
+            SizedBox(
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () async {
+                  if (nameController.text.trim().isEmpty) return;
+
+                  final name = nameController.text.trim();
+                  
+                  try {
+                    final user = ref.read(currentUserProvider).value;
+                    
+                    final isDietWarning = user != null
+                        ? DietChecker.checkDietWarning(name, user.dietPreferences)
+                        : false;
+
+                    await ref.read(itemsNotifierProvider(widget.listId).notifier).addItem(
+                          name: name,
+                          quantity: double.tryParse(quantityController.text) ?? 1.0,
+                          unit: selectedUnit,
+                          category: null,
+                          notes: notesController.text.trim().isEmpty
+                              ? null
+                              : notesController.text.trim(),
+                          isDietWarning: isDietWarning,
+                        );
+
+                    Navigator.pop(context);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(context.tr('error_adding', params: {'error': e.toString()})),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: Text(
+                  AppLocalizations.of(context).addItem,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>?> _fetchUserInfo(String? userId) async {
+    if (userId == null || userId.isEmpty) return null;
+    try {
+      final response = await SupabaseService.instance.client
+          .from('users')
+          .select('display_name, avatar_url')
+          .eq('id', userId)
+          .maybeSingle();
+      return response;
+    } catch (e) {
+      debugPrint('❌ Failed to fetch user info: $e');
+      return null;
+    }
+  }
+
+  void _showEditItemDialog(BuildContext context, ShoppingItemModel item) {
+    final nameController = TextEditingController(text: item.name);
+    // Display quantity as whole number if it's a whole number
+    final quantityText = item.quantity % 1 == 0 
+        ? item.quantity.toInt().toString() 
+        : item.quantity.toString();
+    final quantityController = TextEditingController(text: quantityText);
+    final notesController = TextEditingController(text: item.notes ?? '');
+    String selectedUnit = item.unit ?? 'pcs';
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1C1C1E)
+            : Colors.white,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16), // Reduziert von 20 auf 16
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header
+                  Text(
+                    AppLocalizations.of(context).editItem,
+                    style: AppTextStyles.h2.copyWith(fontSize: 20),
+                    textAlign: TextAlign.center,
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Added By Section
+                  if (item.addedBy != null && item.addedBy!.isNotEmpty)
+                    FutureBuilder<Map<String, dynamic>?>(
+                      future: _fetchUserInfo(item.addedBy),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Center(
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.textSecondary(context),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        
+                        final userInfo = snapshot.data;
+                        final displayName = userInfo?['display_name'] as String? ?? context.tr('unknown_user');
+                        final avatarUrl = userInfo?['avatar_url'] as String?;
+                        final isDark = Theme.of(context).brightness == Brightness.dark;
+                        final userId = item.addedBy!;
+                        
+                        return GestureDetector(
+                          onTap: () {
+                            // Close dialog and navigate to user's recipe page
+                            Navigator.pop(context);
+                            context.push('/author/$userId', extra: {'authorName': displayName});
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isDark 
+                                  ? Colors.white.withValues(alpha: 0.05)
+                                  : Colors.grey.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                // Profile picture
+                                CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: AppColors.accentColor(context).withValues(alpha: 0.2),
+                                  backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                                      ? NetworkImage(avatarUrl)
+                                      : null,
+                                  child: avatarUrl == null || avatarUrl.isEmpty
+                                      ? Text(
+                                          displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.accentColor(context),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 10),
+                                // Name and "Added by" label
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        context.tr('added_by'),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.textSecondary(context),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 1),
+                                      Text(
+                                        displayName,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.textPrimary(context),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Arrow indicator
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: AppColors.textSecondary(context),
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  
+                  // Name Field
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).itemName,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.grey.withValues(alpha: 0.05),
+                    ),
+                    textCapitalization: TextCapitalization.sentences,
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Quantity and Unit Row
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          controller: quantityController,
+                          decoration: InputDecoration(
+                            labelText: AppLocalizations.of(context).quantity,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : Colors.grey.withValues(alpha: 0.05),
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: StatefulBuilder(
+                          builder: (context, setState) => DropdownButtonFormField<String>(
+                            value: selectedUnit,
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(context).unit,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              filled: true,
+                              fillColor: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white.withValues(alpha: 0.05)
+                                  : Colors.grey.withValues(alpha: 0.05),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            items: Categories.units.map((unit) {
+                              return DropdownMenuItem(
+                                value: unit,
+                                child: Text(unit, overflow: TextOverflow.ellipsis),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedUnit = value ?? 'pcs';
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Notes Field
+                  TextField(
+                    controller: notesController,
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).notes,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.grey.withValues(alpha: 0.05),
+                    ),
+                    maxLines: 2,
+                    textCapitalization: TextCapitalization.sentences,
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Action Buttons - iOS 26 Style
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Delete Button
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            await ref
+                                .read(itemsNotifierProvider(widget.listId).notifier)
+                                .deleteItem(item.id);
+                            ref.invalidate(listsNotifierProvider);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            side: BorderSide(color: Colors.red.shade400),
+                            foregroundColor: Colors.red.shade600,
+                          ),
+                          child: Text(
+                            AppLocalizations.of(context).delete,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(width: 8),
+                      
+                      // Save Button
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final quantity = double.tryParse(quantityController.text) ?? 1.0;
+                            ref
+                                .read(itemsNotifierProvider(widget.listId).notifier)
+                                .updateItem(item.id, {
+                              'name': nameController.text.trim(),
+                              'quantity': quantity,
+                              'unit': selectedUnit,
+                              'notes': notesController.text.trim().isEmpty
+                                  ? null
+                                  : notesController.text.trim(),
+                            });
+                            
+                            // Refresh to update home screen
+                            ref.invalidate(listsNotifierProvider);
+                            
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            backgroundColor: AppColors.accentColor(context),
+                            foregroundColor: Colors.white,
+                          ),
+                          child: Text(
+                            AppLocalizations.of(context).save,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showShareDialog() async {
+    try {
+      final code = await ref
+          .read(listsNotifierProvider.notifier)
+          .generateShareCode(widget.listId);
+
+      if (!mounted) return;
+      
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentColor(context).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.share_rounded,
+                    size: 32,
+                    color: AppColors.accentColor(context),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Title
+                Text(
+                  AppLocalizations.of(context).shareCodeTitle,
+                  style: AppTextStyles.h2.copyWith(fontSize: 20),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                
+                // Message
+                Text(
+                  AppLocalizations.of(context).shareCodeMessage,
+                  style: TextStyle(
+                    color: AppColors.textSecondary(context),
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                
+                // Code display with copy button
+                GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: code));
+                    HapticFeedback.lightImpact();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(context.tr('code_copied')),
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          code,
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 4,
+                            color: AppColors.textPrimary(context),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.copy_rounded,
+                          size: 20,
+                          color: AppColors.textSecondary(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                
+                Text(
+                  context.tr('tap_to_copy'),
+                  style: TextStyle(
+                    color: AppColors.textSecondary(context),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Share button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _shareListViaSystem(code);
+                    },
+                    icon: const Icon(Icons.share_rounded, color: Colors.white),
+                    label: Text(
+                      AppLocalizations.of(context).share,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentColor(context),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('error_generic', params: {'error': e.toString()}))),
+        );
+      }
+    }
+  }
+
+  Future<void> _showShareCodeDialog() async {
+    try {
+      final code = await ref
+          .read(listsNotifierProvider.notifier)
+          .generateShareCode(widget.listId);
+
+      AdaptiveAlertDialog.show(
+        context: context,
+        title: AppLocalizations.of(context).shareCodeTitle,
+        message: '${AppLocalizations.of(context).shareCodeMessage}\n\n$code',
+        icon: PlatformInfo.isIOS26OrHigher() ? 'qrcode' : Icons.qr_code,
+        actions: [
+          AlertAction(
+            title: AppLocalizations.of(context).cancel,
+            style: AlertActionStyle.cancel,
+            onPressed: () {},
+          ),
+          AlertAction(
+            title: AppLocalizations.of(context).copy,
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: code));
+            },
+          ),
+          AlertAction(
+            title: AppLocalizations.of(context).share,
+            style: AlertActionStyle.primary,
+            onPressed: () {
+              _shareListViaSystem(code);
+            },
+          ),
+        ],
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('error_generic', params: {'error': e.toString()}))),
+        );
+      }
+    }
+  }
+
+  Future<void> _onShareSelected() async {
+    try {
+      final code = await ref
+          .read(listsNotifierProvider.notifier)
+          .generateShareCode(widget.listId);
+
+      AdaptiveAlertDialog.show(
+        context: context,
+        title: AppLocalizations.of(context).shareDialogTitle,
+        message: AppLocalizations.of(context).shareDialogMessage(code),
+        icon: PlatformInfo.isIOS26OrHigher() ? 'square.and.arrow.up' : Icons.share,
+        actions: [
+          AlertAction(
+            title: AppLocalizations.of(context).cancel,
+            style: AlertActionStyle.cancel,
+            onPressed: () {},
+          ),
+          AlertAction(
+            title: AppLocalizations.of(context).share,
+            onPressed: () {
+              _shareListViaSystem(code);
+            },
+          ),
+          AlertAction(
+            title: AppLocalizations.of(context).copyAndContinue,
+            style: AlertActionStyle.primary,
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: code));
+              _shareListViaSystem(code);
+            },
+          ),
+        ],
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('error_generic', params: {'error': e.toString()}))),
+        );
+      }
+    }
+  }
+
+  Future<void> _addItemFromRecommendation(
+    String? itemName,
+    String? category,
+    double? quantity,
+  ) async {
+    if (itemName == null || itemName.isEmpty) return;
+    
+    try {
+      await ref.read(itemsNotifierProvider(widget.listId).notifier).addItem(
+        name: itemName,
+        quantity: quantity ?? 1.0,
+        category: category,
+      );
+
+      if (mounted) {
+        // Note: No need to invalidate - the itemsNotifierProvider handles state updates
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$itemName zur Liste hinzugefügt'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _completeShoppingTrip(
+    BuildContext context,
+    WidgetRef ref,
+    List<ShoppingItemModel> items,
+  ) async {
+    // Filter only checked items
+    final checkedItems = items.where((item) => item.isChecked).toList();
+    
+    if (checkedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.tr('no_checked_items')),
+        ),
+      );
+      return;
+    }
+    
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('complete_shopping_question')),
+        content: Text(
+          context.tr('complete_shopping_checked_message', params: {'count': checkedItems.length.toString()}),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+            ),
+            child: Text(context.tr('complete_btn')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      // Save only checked items to history
+      final historyService = ShoppingHistoryService();
+      await historyService.completeShoppingTrip(
+        listName: widget.listName,
+        items: checkedItems,
+      );
+
+      // Track purchases for recommendations
+      try {
+        final trackingService = PurchaseTrackingService();
+        await trackingService.trackPurchases(checkedItems);
+      } catch (e) {
+        // Log but don't fail the whole operation if tracking fails
+        debugPrint('Purchase tracking failed: $e');
+      }
+
+      // Delete only checked items from the list
+      final itemIds = checkedItems.map((item) => item.id).toList();
+      await SupabaseService.instance
+          .from('shopping_items')
+          .delete()
+          .inFilter('id', itemIds);
+
+      // 🔔 Send notification to all list members about shopping completion
+      if (Platform.isIOS || Platform.isAndroid) {
+        try {
+          final userId = SupabaseService.instance.currentUser?.id;
+          if (userId != null) {
+            await _sendShoppingCompleteNotifications(
+              widget.listId,
+              widget.listName,
+              checkedItems.length,
+              userId,
+            );
+          }
+        } catch (e) {
+          debugPrint('⚠️ Failed to send shopping complete notifications: $e');
+        }
+      }
+
+      // Refresh the items list and home screen
+      ref.invalidate(itemsNotifierProvider(widget.listId));
+      ref.invalidate(listsNotifierProvider);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ${checkedItems.length} Artikel erfolgreich abgeschlossen!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.tr('error_completing', params: {'error': e.toString()})),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showRenameListDialog() {
+    final nameController = TextEditingController(text: widget.listName);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('rename_list_title')),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Listenname',
+            hintText: 'Neuer Name',
+          ),
+          textCapitalization: TextCapitalization.sentences,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newName = nameController.text.trim();
+              if (newName.isNotEmpty && newName != widget.listName) {
+                try {
+                  await ref
+                      .read(listsNotifierProvider.notifier)
+                      .updateList(widget.listId, {'name': newName});
+                  
+                  if (mounted) {
+                    // Close dialog
+                    Navigator.pop(context);
+                    
+                    // Update the list name in state
+                    setState(() {
+                      _listName = newName;
+                    });
+                    
+                    // Refresh the list provider
+                    ref.invalidate(listsNotifierProvider);
+                    
+                    // Show success message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            Text(context.tr('list_renamed')),
+                          ],
+                        ),
+                        backgroundColor: Colors.green,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(context.tr('error_generic', params: {'error': e.toString()}))),
+                    );
+                  }
+                }
+              } else {
+                Navigator.pop(context);
+              }
+            },
+            child: Text(context.tr('save')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteListDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('delete_list_question')),
+        content: Text(
+          context.tr('delete_list_confirm_message', params: {'name': widget.listName}),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(context.tr('cancel')),
+          ),
+          TextButton(
+            onPressed: () async {
+              // Close dialog first
+              Navigator.pop(context);
+              
+              try {
+                print('🗑️ Deleting list: ${widget.listName} (${widget.listId})');
+                
+                // Delete the list
+                await ref
+                    .read(listsNotifierProvider.notifier)
+                    .deleteList(widget.listId);
+                
+                print('✅ List deleted successfully');
+                
+                if (mounted) {
+                  // Refresh the lists
+                  ref.invalidate(listsNotifierProvider);
+                  
+                  // Navigate to home page
+                  context.go('/home');
+                  
+                  print('✅ Navigated to home page');
+                  
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(context.tr('list_deleted', params: {'name': widget.listName})),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                print('❌ Failed to delete list: $e');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(context.tr('error_deleting', params: {'error': e.toString()})),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(context.tr('delete')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Send shopping complete notifications to all list members
+  Future<void> _sendShoppingCompleteNotifications(
+    String listId,
+    String listName,
+    int itemCount,
+    String completedByUserId,
+  ) async {
+    try {
+      debugPrint('🔔 [LIST_DETAIL] Sending shopping complete notifications...');
+      
+      // Get all list members except the person who completed the shopping
+      final membersResponse = await SupabaseService.instance
+          .from('list_members')
+          .select('user_id')
+          .eq('list_id', listId)
+          .neq('user_id', completedByUserId);
+
+      debugPrint('🔔 [LIST_DETAIL] Found ${(membersResponse as List).length} members to notify');
+
+      // Get the name of the person who completed the shopping
+      final completerResponse = await SupabaseService.instance
+          .from('users')
+          .select('display_name')
+          .eq('id', completedByUserId)
+          .single();
+      
+      final completerName = completerResponse['display_name'] as String? ?? 'Someone';
+
+      // Send FCM push notification to each member
+      for (final member in membersResponse) {
+        final memberId = member['user_id'] as String;
+        
+        try {
+          // Get user's FCM token and display name
+          final userResponse = await SupabaseService.instance
+              .from('users')
+              .select('fcm_token, display_name')
+              .eq('id', memberId)
+              .single();
+          
+          final fcmToken = userResponse['fcm_token'] as String?;
+          
+          if (fcmToken != null && fcmToken.isNotEmpty) {
+            // Send via Supabase Edge Function
+            await SupabaseService.instance.client.functions.invoke(
+              'send-push-notification',
+              body: {
+                'token': fcmToken,
+                'notification': {
+                  'title': 'Shopping Complete!',
+                  'body': '$completerName completed shopping for "$listName"',
+                },
+                'data': {
+                  'type': 'shopping_complete',
+                  'listId': listId,
+                },
+              },
+            );
+            
+            debugPrint('✅ [LIST_DETAIL] Sent push notification to member');
+          }
+        } catch (e) {
+          debugPrint('⚠️ [LIST_DETAIL] Failed to send push to member: $e');
+        }
+      }
+      
+      debugPrint('✅ Sent shopping complete notifications to ${membersResponse.length} members');
+    } catch (e) {
+      debugPrint('❌ Failed to send shopping complete notifications: $e');
+    }
+  }
+
+  /// Build a draggable item tile with tap zones:
+  /// - Left 2/3: tap to toggle check
+  /// - Right 1/3: tap to edit (with pencil icon in quantity box)
+  /// - Long press: start drag to move to different category
+  Widget _buildDraggableItemTile(ShoppingItemModel item, int index, String categoryId) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return LongPressDraggable<ShoppingItemModel>(
+      data: item,
+      delay: const Duration(milliseconds: 300),
+      onDragStarted: () {
+        HapticFeedback.mediumImpact();
+        setState(() {
+          _isDragging = true;
+          _draggedItem = item;
+          _draggedFromCategory = categoryId;
+        });
+      },
+      onDragUpdate: (details) {
+        // Auto-scroll when dragging near top or bottom edges
+        _handleAutoScroll(details.globalPosition.dy);
+      },
+      onDragEnd: (details) {
+        _isAutoScrolling = false;
+        setState(() {
+          _isDragging = false;
+          _draggedItem = null;
+          _draggedFromCategory = null;
+        });
+      },
+      onDraggableCanceled: (_, __) {
+        _isAutoScrolling = false;
+        setState(() {
+          _isDragging = false;
+          _draggedItem = null;
+          _draggedFromCategory = null;
+        });
+      },
+      feedback: Material(
+        elevation: 8,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: MediaQuery.of(context).size.width - 64,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.accentColor(context).withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.drag_indicator_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Text(
+                '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} ${item.unit ?? ''}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.3,
+        child: _buildItemTileContent(item, isDark),
+      ),
+      child: Dismissible(
+        key: Key(item.id),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          decoration: BoxDecoration(
+            color: Colors.red,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Icon(
+            Icons.delete,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+        confirmDismiss: (direction) async {
+          HapticFeedback.heavyImpact();
+          return true;
+        },
+        onDismissed: (direction) async {
+          await ref.read(itemsNotifierProvider(widget.listId).notifier)
+            .deleteItem(item.id);
+          ref.invalidate(listsNotifierProvider);
+          
+          if (context.mounted) {
+            HapticFeedback.lightImpact();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${item.name} ${context.tr('deleted')}'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+          }
+        },
+        child: _buildItemTileContent(item, isDark),
+      ),
+    );
+  }
+  
+  /// The actual content of an item tile with 2/3 check zone and 1/3 edit zone
+  Widget _buildItemTileContent(ShoppingItemModel item, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.itemCard(context),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: isDark 
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+            spreadRadius: isDark ? 0 : 1,
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: Row(
+          children: [
+            // LEFT 2/3 ZONE: Tap to check/uncheck
+            Expanded(
+              flex: 2,
+              child: GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  ref.read(itemsNotifierProvider(widget.listId).notifier)
+                    .toggleItemChecked(item.id, !item.isChecked);
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+                  child: Row(
+                    children: [
+                      // Checkbox
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: item.isChecked 
+                              ? AppColors.accentColor(context)
+                              : Colors.transparent,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: item.isChecked 
+                                ? AppColors.accentColor(context)
+                                : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+                            width: 2,
+                          ),
+                        ),
+                        child: item.isChecked
+                            ? const Icon(
+                                Icons.check_rounded,
+                                color: Colors.white,
+                                size: 16,
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 14),
+                      // Item name and notes
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.name,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                decoration: item.isChecked ? TextDecoration.lineThrough : null,
+                                color: item.isChecked 
+                                    ? (isDark ? Colors.grey.shade500 : Colors.grey.shade500)
+                                    : AppColors.textPrimary(context),
+                              ),
+                            ),
+                            if (item.notes != null && item.notes!.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                item.notes!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? Colors.grey.shade500 : Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // RIGHT ZONE: Tap to edit - Quantity box with pencil (dynamic size)
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                _showEditItemDialog(context, item);
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(4, 10, 16, 10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: item.isChecked
+                        ? (isDark ? Colors.grey.shade800 : Colors.grey.shade200)
+                        : AppColors.accentColor(context).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: item.isChecked
+                          ? (isDark ? Colors.grey.shade700 : Colors.grey.shade300)
+                          : AppColors.accentColor(context).withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity}${item.unit != null && item.unit!.isNotEmpty ? ' ${item.unit}' : ''}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: item.isChecked 
+                              ? Colors.grey.shade500
+                              : AppColors.accentColor(context),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        Icons.edit_rounded,
+                        size: 14,
+                        color: item.isChecked 
+                            ? Colors.grey.shade500
+                            : AppColors.accentColor(context).withValues(alpha: 0.7),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Old method kept for compatibility but should not be used
+  Widget _buildItemTile(ShoppingItemModel item, int index) {
+    return _buildDraggableItemTile(item, index, 'other');
+  }
+
+  void _showBackgroundSelectionDialog() {
+    // Show Apple-style bottom sheet for background selection
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BackgroundSelectionSheet(listId: widget.listId),
+    );
+  }
+
+  void _showCategoryOrderScreen() async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => CategoryOrderScreen(
+          listId: widget.listId,
+          listName: _listName,
+        ),
+      ),
+    );
+    
+    // If categories were reordered, refresh the items list and reload custom categories
+    if (result == true) {
+      await _loadCustomCategories();
+      ref.invalidate(itemsNotifierProvider(widget.listId));
+      setState(() {});
+    }
+  }
+  
+  void _showListSettingsScreen() {
+    if (_ownerId == null) return;
+    
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ListSettingsScreen(
+          listId: widget.listId,
+          listName: _listName,
+          ownerId: _ownerId!,
+        ),
+      ),
+    );
+  }
+
+  void _shareListViaSystem([String? code]) {
+    final base = 'Schau dir meine Einkaufsliste "${widget.listName}" an!';
+    final withCode = code != null && code.isNotEmpty
+        ? '\n\nTrete mit diesem Code bei: $code\nÖffne ShoplyAI und tippe auf "Liste beitreten".'
+        : '\n\nLade ShoplyAI herunter und trete meiner Liste bei.';
+    Share.share(
+      '$base $withCode',
+      subject: 'Meine ShoplyAI Einkaufsliste',
+    );
+  }
+}
