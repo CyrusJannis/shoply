@@ -252,33 +252,16 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           ),
         ),
         actions: [
-          // Settings button - iOS26 style with glass design
+          // Settings button
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: AdaptivePopupMenuButton.icon(
+            child: PopupMenuButton<int>(
               key: ValueKey('settings_popup_$_popupMenuKeyCounter'),
-              icon: PlatformInfo.isIOS26OrHigher() ? 'gearshape.fill' : Icons.settings,
-              buttonStyle: PopupButtonStyle.glass,
-              items: [
-                AdaptivePopupMenuItem(
-                  label: context.tr('rename_list'),
-                  icon: PlatformInfo.isIOS26OrHigher() ? 'pencil' : Icons.edit,
-                ),
-                AdaptivePopupMenuItem(
-                  label: context.tr('change_background'),
-                  icon: PlatformInfo.isIOS26OrHigher() ? 'photo.fill' : Icons.image,
-                ),
-                AdaptivePopupMenuItem(
-                  label: context.tr('category_order'),
-                  icon: PlatformInfo.isIOS26OrHigher() ? 'list.bullet.indent' : Icons.reorder,
-                ),
-                AdaptivePopupMenuItem(
-                  label: context.tr('list_settings'),
-                  icon: PlatformInfo.isIOS26OrHigher() ? 'gearshape' : Icons.settings,
-                ),
-              ],
-              onSelected: (index, entry) async {
-                // Increment key counter to force popup rebuild after navigation
+              icon: Icon(
+                Icons.settings,
+                color: AppColors.textPrimary(context),
+              ),
+              onSelected: (index) async {
                 setState(() {
                   _popupMenuKeyCounter++;
                 });
@@ -293,25 +276,61 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                   _showListSettingsScreen();
                 }
               },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 0,
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, size: 20, color: AppColors.textSecondary(context)),
+                      const SizedBox(width: 12),
+                      Text(context.tr('rename_list')),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 1,
+                  child: Row(
+                    children: [
+                      Icon(Icons.image, size: 20, color: AppColors.textSecondary(context)),
+                      const SizedBox(width: 12),
+                      Text(context.tr('change_background')),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 2,
+                  child: Row(
+                    children: [
+                      Icon(Icons.reorder, size: 20, color: AppColors.textSecondary(context)),
+                      const SizedBox(width: 12),
+                      Text(context.tr('category_order')),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 3,
+                  child: Row(
+                    children: [
+                      Icon(Icons.settings, size: 20, color: AppColors.textSecondary(context)),
+                      const SizedBox(width: 12),
+                      Text(context.tr('list_settings')),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          // Share button - iOS26 liquid glass style, regular icon for other platforms
+          // Share button
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: (Platform.isIOS && PlatformInfo.isIOS26OrHigher())
-                ? AdaptiveButton.sfSymbol(
-                    sfSymbol: const SFSymbol('square.and.arrow.up'),
-                    style: AdaptiveButtonStyle.glass,
-                    onPressed: _showShareDialog,
-                  )
-                : IconButton(
-                    icon: Icon(
-                      Icons.share_rounded,
-                      size: 22,
-                      color: AppColors.textPrimary(context),
-                    ),
-                    onPressed: _showShareDialog,
-                  ),
+            child: IconButton(
+              icon: Icon(
+                Icons.share_rounded,
+                size: 22,
+                color: AppColors.textPrimary(context),
+              ),
+              onPressed: _showShareDialog,
+            ),
           ),
         ],
       ),
