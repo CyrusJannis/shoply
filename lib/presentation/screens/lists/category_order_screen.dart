@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -170,7 +171,7 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
         final cat = Categories.getById(id);
         items.add(_CategoryItem(
           id: id,
-          name: cat.getName('en'),
+          name: id, // Store ID for translation lookup
           color: cat.color,
           isCustom: false,
         ));
@@ -183,7 +184,7 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
         final cat = Categories.getById(id);
         items.add(_CategoryItem(
           id: id,
-          name: cat.getName('en'),
+          name: id, // Store ID for translation lookup
           color: cat.color,
           isCustom: false,
         ));
@@ -573,29 +574,40 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isIOS26 = PlatformInfo.isIOS26OrHigher();
     
     return Scaffold(
       backgroundColor: isDark ? Colors.black : Colors.grey[100],
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey[800] : Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
+        leading: isIOS26
+            ? Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: AdaptiveButton.sfSymbol(
+                  sfSymbol: 'xmark',
+                  style: AdaptiveButtonStyle.glass,
+                  size: AdaptiveButtonSize.small,
+                  onPressed: () => Navigator.pop(context, _hasChanges),
                 ),
-              ],
-            ),
-            child: const Icon(Icons.close, size: 20),
-          ),
-          onPressed: () => Navigator.pop(context, _hasChanges),
-        ),
+              )
+            : IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey[800] : Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.close, size: 20),
+                ),
+                onPressed: () => Navigator.pop(context, _hasChanges),
+              ),
         title: Text(
           context.tr('category_order'),
           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -603,42 +615,62 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
         centerTitle: true,
         actions: [
           // Add button
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.grey[800] : Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
+          isIOS26
+              ? Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: AdaptiveButton.sfSymbol(
+                    sfSymbol: 'plus',
+                    style: AdaptiveButtonStyle.glass,
+                    size: AdaptiveButtonSize.small,
+                    onPressed: _showAddCategoryDialog,
                   ),
-                ],
-              ),
-              child: const Icon(Icons.add, size: 20),
-            ),
-            onPressed: _showAddCategoryDialog,
-          ),
+                )
+              : IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.grey[800] : Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.add, size: 20),
+                  ),
+                  onPressed: _showAddCategoryDialog,
+                ),
           // Done button
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.lightAccent,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.lightAccent.withOpacity(0.3),
-                    blurRadius: 8,
+          isIOS26
+              ? Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: AdaptiveButton.sfSymbol(
+                    sfSymbol: 'checkmark',
+                    style: AdaptiveButtonStyle.prominentGlass,
+                    size: AdaptiveButtonSize.small,
+                    onPressed: () => Navigator.pop(context, _hasChanges),
                   ),
-                ],
-              ),
-              child: const Icon(Icons.check, size: 20, color: Colors.white),
-            ),
-            onPressed: () => Navigator.pop(context, _hasChanges),
-          ),
-          const SizedBox(width: 8),
+                )
+              : IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.lightAccent,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.lightAccent.withOpacity(0.3),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.check, size: 20, color: Colors.white),
+                  ),
+                  onPressed: () => Navigator.pop(context, _hasChanges),
+                ),
+          if (!isIOS26) const SizedBox(width: 8),
         ],
       ),
       body: _isLoading
@@ -754,7 +786,7 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
         title: Text(
           category.isCustom 
               ? category.name 
-              : context.tr(category.name),
+              : context.tr('category_${category.id}'),
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,

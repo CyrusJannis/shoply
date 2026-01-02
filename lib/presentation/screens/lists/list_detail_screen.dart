@@ -66,8 +66,14 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
   List<CustomCategory> _customCategories = [];
   bool _customCategoriesLoaded = false;
   
+  // Category order cache
+  List<String> _categoryOrder = [];
+  
   // List owner info
   String? _ownerId;
+  
+  // Key counter for forcing popup menu rebuild after navigation
+  int _popupMenuKeyCounter = 0;
 
   /// Auto-scroll the list when dragging near edges
   void _handleAutoScroll(double globalY) {
@@ -160,10 +166,13 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
   }
   
   Future<void> _loadCustomCategories() async {
-    final categories = await CategoryOrderService().getCustomCategories(widget.listId);
+    final service = CategoryOrderService();
+    final categories = await service.getCustomCategories(widget.listId);
+    final order = await service.getCategoryOrder(widget.listId);
     if (mounted) {
       setState(() {
         _customCategories = categories;
+        _categoryOrder = order;
         _customCategoriesLoaded = true;
       });
     }
@@ -247,6 +256,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: AdaptivePopupMenuButton.icon(
+              key: ValueKey('settings_popup_$_popupMenuKeyCounter'),
               icon: PlatformInfo.isIOS26OrHigher() ? 'gearshape.fill' : Icons.settings,
               buttonStyle: PopupButtonStyle.glass,
               items: [
@@ -267,7 +277,12 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                   icon: PlatformInfo.isIOS26OrHigher() ? 'gearshape' : Icons.settings,
                 ),
               ],
-              onSelected: (index, entry) {
+              onSelected: (index, entry) async {
+                // Increment key counter to force popup rebuild after navigation
+                setState(() {
+                  _popupMenuKeyCounter++;
+                });
+                
                 if (index == 0) {
                   _showRenameListDialog();
                 } else if (index == 1) {
@@ -280,20 +295,26 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
               },
             ),
           ),
-          // Share button - iOS26 style without background
+          // Share button - iOS26 liquid glass style
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: _showShareDialog,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Icon(
-                  Icons.share_rounded,
-                  size: 22,
-                  color: AppColors.textPrimary(context),
-                ),
-              ),
-            ),
+            child: Platform.isIOS
+                ? AdaptiveButton.sfSymbol(
+                    'square.and.arrow.up',
+                    style: AdaptiveButtonStyle.glass,
+                    onPressed: _showShareDialog,
+                  )
+                : GestureDetector(
+                    onTap: _showShareDialog,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Icon(
+                        Icons.share_rounded,
+                        size: 22,
+                        color: AppColors.textPrimary(context),
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -663,20 +684,39 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
       categoryMap[categoryId]!.add(item);
     }
 
-    // Build sorted list: custom categories first, then built-in categories
+    // Build sorted list using saved category order
     final sortedCategories = <String>[];
     
-    // Add custom categories first (in order they were created)
-    for (final customCat in _customCategories) {
-      if (!sortedCategories.contains(customCat.id)) {
-        sortedCategories.add(customCat.id);
+    // If we have a saved category order, use it
+    if (_categoryOrder.isNotEmpty) {
+      // Add categories in saved order (only if they have items or are custom)
+      for (final categoryId in _categoryOrder) {
+        final hasItems = categoryMap.containsKey(categoryId) && categoryMap[categoryId]!.isNotEmpty;
+        final isCustom = categoryId.startsWith('custom_');
+        if (hasItems || isCustom) {
+          sortedCategories.add(categoryId);
+        }
       }
-    }
-    
-    // Then add built-in categories that have items
-    for (final category in Categories.all) {
-      if (categoryMap.containsKey(category.id) && categoryMap[category.id]!.isNotEmpty) {
-        sortedCategories.add(category.id);
+      
+      // Add any categories with items that weren't in the saved order (new categories)
+      for (final categoryId in categoryMap.keys) {
+        if (!sortedCategories.contains(categoryId) && categoryMap[categoryId]!.isNotEmpty) {
+          sortedCategories.add(categoryId);
+        }
+      }
+    } else {
+      // Fallback: custom categories first, then built-in categories
+      for (final customCat in _customCategories) {
+        if (!sortedCategories.contains(customCat.id)) {
+          sortedCategories.add(customCat.id);
+        }
+      }
+      
+      // Then add built-in categories that have items
+      for (final category in Categories.all) {
+        if (categoryMap.containsKey(category.id) && categoryMap[category.id]!.isNotEmpty) {
+          sortedCategories.add(category.id);
+        }
       }
     }
 
