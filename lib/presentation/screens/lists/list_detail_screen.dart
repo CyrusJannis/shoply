@@ -300,7 +300,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
             padding: const EdgeInsets.only(right: 12),
             child: Platform.isIOS
                 ? AdaptiveButton.sfSymbol(
-                    'square.and.arrow.up',
+                    sfSymbol: const SFSymbol('square.and.arrow.up'),
                     style: AdaptiveButtonStyle.glass,
                     onPressed: _showShareDialog,
                   )

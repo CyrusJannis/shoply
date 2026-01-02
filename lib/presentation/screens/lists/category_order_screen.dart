@@ -585,7 +585,7 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
             ? Padding(
                 padding: const EdgeInsets.only(left: 8),
                 child: AdaptiveButton.sfSymbol(
-                  sfSymbol: 'xmark',
+                  sfSymbol: const SFSymbol('xmark'),
                   style: AdaptiveButtonStyle.glass,
                   size: AdaptiveButtonSize.small,
                   onPressed: () => Navigator.pop(context, _hasChanges),
@@ -619,7 +619,7 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
               ? Padding(
                   padding: const EdgeInsets.only(right: 4),
                   child: AdaptiveButton.sfSymbol(
-                    sfSymbol: 'plus',
+                    sfSymbol: const SFSymbol('plus'),
                     style: AdaptiveButtonStyle.glass,
                     size: AdaptiveButtonSize.small,
                     onPressed: _showAddCategoryDialog,
@@ -647,7 +647,7 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
               ? Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: AdaptiveButton.sfSymbol(
-                    sfSymbol: 'checkmark',
+                    sfSymbol: const SFSymbol('checkmark'),
                     style: AdaptiveButtonStyle.prominentGlass,
                     size: AdaptiveButtonSize.small,
                     onPressed: () => Navigator.pop(context, _hasChanges),
