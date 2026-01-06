@@ -97,7 +97,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
   
   /// Perform the actual scrolling based on current direction and speed
   void _performAutoScroll() {
-    if (!_isDragging || !_scrollController.hasClients || _scrollDirection == 0) {
+    if (!_scrollController.hasClients || _scrollDirection == 0) {
       return;
     }
     
@@ -118,46 +118,77 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
   }
   
   /// Auto-scroll the list when dragging near edges
+  /// This enables users to drag items between categories that are far apart
   void _handleAutoScroll(double globalY) {
-    if (!_isDragging || !_scrollController.hasClients) {
-      _stopAutoScrollTimer();
+    // Always check scroll controller first
+    if (!_scrollController.hasClients) {
+      debugPrint('🔴 [AUTOSCROLL] No scroll clients!');
       return;
     }
     
     final screenHeight = MediaQuery.of(context).size.height;
-    final topEdge = MediaQuery.of(context).padding.top + kToolbarHeight;
-    final bottomEdge = screenHeight - MediaQuery.of(context).padding.bottom;
-    final scrollEdgeThreshold = 100.0; // Distance from edge to start scrolling
-    final maxScrollSpeed = 12.0; // Maximum pixels per tick
+    final topPadding = MediaQuery.of(context).padding.top;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    
+    // Define scroll zones - larger zones for easier activation
+    // Top zone starts right below status bar (not app bar, so we have more area)
+    final topEdge = topPadding + 60; // Just below status bar + some margin
+    // Bottom zone: above the bottom safe area
+    final bottomEdge = screenHeight - bottomPadding - 100;
+    
+    // Scroll zone threshold - how close to edge to start scrolling
+    const scrollEdgeThreshold = 180.0; // Even larger zone
+    // Maximum scroll speed - pixels per frame (at 60fps this is ~1500px/sec)
+    const maxScrollSpeed = 25.0;
+    // Minimum scroll speed for smooth start
+    const minScrollSpeed = 8.0;
     
     // Calculate distance from edges
     final distanceFromTop = globalY - topEdge;
     final distanceFromBottom = bottomEdge - globalY;
     
-    // Top edge detection - scroll up
-    if (distanceFromTop < scrollEdgeThreshold && distanceFromTop > 0) {
+    debugPrint('🔵 [AUTOSCROLL] globalY=$globalY, topEdge=$topEdge, bottomEdge=$bottomEdge, distTop=$distanceFromTop, distBottom=$distanceFromBottom');
+    
+    // Top edge detection - scroll up when finger is near top
+    if (distanceFromTop < scrollEdgeThreshold) {
       // Calculate speed based on proximity (closer = faster)
-      final proximity = 1.0 - (distanceFromTop / scrollEdgeThreshold);
-      _scrollSpeed = maxScrollSpeed * proximity.clamp(0.2, 1.0);
-      _scrollDirection = -1;
+      // Use exponential curve for smoother acceleration
+      final normalizedDistance = (distanceFromTop / scrollEdgeThreshold).clamp(0.0, 1.0);
+      final proximity = 1.0 - normalizedDistance;
+      _scrollSpeed = minScrollSpeed + (maxScrollSpeed - minScrollSpeed) * proximity * proximity;
+      
+      if (_scrollDirection != -1) {
+        _scrollDirection = -1;
+        debugPrint('🔼 [AUTOSCROLL] Starting UP scroll, speed=$_scrollSpeed');
+        HapticFeedback.selectionClick();
+      }
       if (_autoScrollTimer == null) {
         _startAutoScrollTimer();
       }
     }
-    // Bottom edge detection - scroll down
-    else if (distanceFromBottom < scrollEdgeThreshold && distanceFromBottom > 0) {
+    // Bottom edge detection - scroll down when finger is near bottom
+    else if (distanceFromBottom < scrollEdgeThreshold) {
       // Calculate speed based on proximity (closer = faster)
-      final proximity = 1.0 - (distanceFromBottom / scrollEdgeThreshold);
-      _scrollSpeed = maxScrollSpeed * proximity.clamp(0.2, 1.0);
-      _scrollDirection = 1;
+      final normalizedDistance = (distanceFromBottom / scrollEdgeThreshold).clamp(0.0, 1.0);
+      final proximity = 1.0 - normalizedDistance;
+      _scrollSpeed = minScrollSpeed + (maxScrollSpeed - minScrollSpeed) * proximity * proximity;
+      
+      if (_scrollDirection != 1) {
+        _scrollDirection = 1;
+        debugPrint('🔽 [AUTOSCROLL] Starting DOWN scroll, speed=$_scrollSpeed');
+        HapticFeedback.selectionClick();
+      }
       if (_autoScrollTimer == null) {
         _startAutoScrollTimer();
       }
     }
     // Not near edges - stop auto-scrolling
     else {
-      _scrollDirection = 0;
-      _scrollSpeed = 0.0;
+      if (_scrollDirection != 0) {
+        debugPrint('⏹️ [AUTOSCROLL] Stopping scroll');
+        _scrollDirection = 0;
+        _scrollSpeed = 0.0;
+      }
     }
   }
 
@@ -1981,89 +2012,99 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
   Widget _buildDraggableItemTile(ShoppingItemModel item, int index, String categoryId) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return LongPressDraggable<ShoppingItemModel>(
-      data: item,
-      delay: const Duration(milliseconds: 300),
-      onDragStarted: () {
-        HapticFeedback.mediumImpact();
-        setState(() {
-          _isDragging = true;
-          _draggedItem = item;
-          _draggedFromCategory = categoryId;
-        });
+    return Listener(
+      onPointerMove: (event) {
+        // Track pointer position during drag for auto-scroll
+        if (_isDragging) {
+          _handleAutoScroll(event.position.dy);
+        }
       },
-      onDragUpdate: (details) {
-        // Auto-scroll when dragging near top or bottom edges
-        _handleAutoScroll(details.globalPosition.dy);
-      },
-      onDragEnd: (details) {
-        _stopAutoScrollTimer();
-        setState(() {
-          _isDragging = false;
-          _draggedItem = null;
-          _draggedFromCategory = null;
-        });
-      },
-      onDraggableCanceled: (_, __) {
-        _stopAutoScrollTimer();
-        setState(() {
-          _isDragging = false;
-          _draggedItem = null;
-          _draggedFromCategory = null;
-        });
-      },
-      feedback: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          width: MediaQuery.of(context).size.width - 64,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.accentColor(context).withValues(alpha: 0.95),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.drag_indicator_rounded, color: Colors.white, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  item.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+      child: LongPressDraggable<ShoppingItemModel>(
+        data: item,
+        delay: const Duration(milliseconds: 300),
+        onDragStarted: () {
+          debugPrint('🎯 [DRAG] Started dragging item: ${item.name}');
+          HapticFeedback.mediumImpact();
+          setState(() {
+            _isDragging = true;
+            _draggedItem = item;
+            _draggedFromCategory = categoryId;
+          });
+        },
+        onDragUpdate: (details) {
+          // Also handle via onDragUpdate as backup
+          _handleAutoScroll(details.globalPosition.dy);
+        },
+        onDragEnd: (details) {
+          debugPrint('🎯 [DRAG] Drag ended');
+          _stopAutoScrollTimer();
+          setState(() {
+            _isDragging = false;
+            _draggedItem = null;
+            _draggedFromCategory = null;
+          });
+        },
+        onDraggableCanceled: (_, __) {
+          debugPrint('🎯 [DRAG] Drag cancelled');
+          _stopAutoScrollTimer();
+          setState(() {
+            _isDragging = false;
+            _draggedItem = null;
+            _draggedFromCategory = null;
+          });
+        },
+        feedback: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            width: MediaQuery.of(context).size.width - 64,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.accentColor(context).withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.drag_indicator_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    item.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              Text(
-                '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} ${item.unit ?? ''}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white70,
+                Text(
+                  '${item.quantity % 1 == 0 ? item.quantity.toInt() : item.quantity} ${item.unit ?? ''}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white70,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.3,
-        child: _buildItemTileContent(item, isDark),
-      ),
-      child: Dismissible(
-        key: Key(item.id),
-        direction: DismissDirection.endToStart,
-        background: Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 20),
-          decoration: BoxDecoration(
-            color: Colors.red,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(
-            Icons.delete,
+        childWhenDragging: Opacity(
+          opacity: 0.3,
+          child: _buildItemTileContent(item, isDark),
+        ),
+        child: Dismissible(
+          key: Key(item.id),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            decoration: BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.delete,
             color: Colors.white,
             size: 28,
           ),
@@ -2093,7 +2134,8 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
         },
         child: _buildItemTileContent(item, isDark),
       ),
-    );
+      ), // Close LongPressDraggable
+    ); // Close Listener
   }
   
   /// The actual content of an item tile with 2/3 check zone and 1/3 edit zone
