@@ -6,6 +6,13 @@ import 'package:shoply/data/services/push_notification_service.dart';
 // Sample recipes removed - all recipes are now in database
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Helper class for keyword-based category scoring
+class _KeywordWeight {
+  final String keyword;
+  final int weight;
+  const _KeywordWeight(this.keyword, this.weight);
+}
+
 class RecipeService {
   static final RecipeService instance = RecipeService();
   final _supabase = SupabaseService.instance.client;
@@ -14,7 +21,8 @@ class RecipeService {
   SupabaseClient get supabase => _supabase;
   
   /// Auto-categorize recipe based on name, description, and ingredients
-  /// Returns a list of category labels that match the recipe
+  /// Returns a list of 1-3 best-fitting category labels
+  /// Uses keyword scoring: 1 category most likely, 2 okay, 3 almost never
   /// 
   /// **IMPORTANT**: Label IDs must match QuickFilters in recipe_filter.dart:
   /// - Cuisine: italian, asian, mexican, mediterranean
@@ -30,117 +38,149 @@ class RecipeService {
     int? prepTime,
     int? cookTime,
   }) {
-    final labels = <String>[];
     final ingredientNames = ingredients.map((i) => i is Map ? (i['name'] ?? '').toString() : i.toString()).join(' ');
     final searchText = '$name $description $ingredientNames'.toLowerCase();
     
-    // Category keywords mapping - uses ENGLISH IDs to match QuickFilters
-    // Keywords include both English and German for multilingual recipe support
-    final categoryKeywords = {
-      // Cuisine types (English IDs)
-      'italian': ['pasta', 'pizza', 'risotto', 'lasagne', 'italien', 'italian', 'italienisch', 'spaghetti', 'penne', 'carbonara', 'bolognese', 'pesto', 'mozzarella', 'parmesan', 'tiramisu', 'gnocchi', 'ravioli', 'focaccia', 'bruschetta', 'aglio', 'olio', 'arrabiata', 'parmigiana'],
-      'asian': ['asia', 'asiatisch', 'chinese', 'chinesisch', 'japanese', 'japanisch', 'thai', 'vietnamese', 'korean', 'koreanisch', 'sushi', 'wok', 'curry', 'noodle', 'nudel', 'sojasauce', 'soy sauce', 'tofu', 'teriyaki', 'ramen', 'pho', 'dim sum', 'spring roll', 'frühlingsroll', 'kimchi', 'pad thai', 'satay', 'gyoza', 'miso', 'wasabi', 'ginger', 'ingwer', 'sesam', 'sesame'],
-      'mexican': ['mexican', 'mexikanisch', 'taco', 'burrito', 'enchilada', 'tex-mex', 'salsa', 'guacamole', 'quesadilla', 'fajita', 'nachos', 'jalapeño', 'chimichanga', 'churro', 'cilantro', 'koriander', 'lime', 'limette', 'tortilla'],
-      'mediterranean': ['mediterran', 'mediterranean', 'greek', 'griechisch', 'middle eastern', 'nahöstlich', 'hummus', 'falafel', 'tzatziki', 'oliven', 'olive', 'feta', 'pita', 'couscous', 'tabouleh', 'shakshuka', 'za\'atar', 'sumac'],
+    // Category keywords mapping with weights - more specific keywords have higher weight
+    // Format: categoryId -> List of (keyword, weight) pairs
+    final categoryKeywords = <String, List<_KeywordWeight>>{
+      // Cuisine types - high specificity
+      'italian': [
+        _KeywordWeight('pasta', 3), _KeywordWeight('pizza', 3), _KeywordWeight('risotto', 3),
+        _KeywordWeight('lasagne', 3), _KeywordWeight('italienisch', 3), _KeywordWeight('italian', 3),
+        _KeywordWeight('spaghetti', 3), _KeywordWeight('carbonara', 3), _KeywordWeight('bolognese', 3),
+        _KeywordWeight('pesto', 2), _KeywordWeight('mozzarella', 2), _KeywordWeight('parmesan', 1),
+        _KeywordWeight('tiramisu', 3), _KeywordWeight('gnocchi', 3), _KeywordWeight('ravioli', 3),
+        _KeywordWeight('bruschetta', 3), _KeywordWeight('parmigiana', 3),
+      ],
+      'asian': [
+        _KeywordWeight('asiatisch', 3), _KeywordWeight('chinese', 3), _KeywordWeight('chinesisch', 3),
+        _KeywordWeight('japanese', 3), _KeywordWeight('japanisch', 3), _KeywordWeight('thai', 3),
+        _KeywordWeight('vietnamese', 3), _KeywordWeight('korean', 3), _KeywordWeight('sushi', 3),
+        _KeywordWeight('wok', 2), _KeywordWeight('curry', 2), _KeywordWeight('teriyaki', 3),
+        _KeywordWeight('ramen', 3), _KeywordWeight('pho', 3), _KeywordWeight('pad thai', 3),
+        _KeywordWeight('gyoza', 3), _KeywordWeight('miso', 2), _KeywordWeight('kimchi', 3),
+        _KeywordWeight('sojasauce', 2), _KeywordWeight('soy sauce', 2), _KeywordWeight('tofu', 2),
+      ],
+      'mexican': [
+        _KeywordWeight('mexican', 3), _KeywordWeight('mexikanisch', 3), _KeywordWeight('taco', 3),
+        _KeywordWeight('burrito', 3), _KeywordWeight('enchilada', 3), _KeywordWeight('tex-mex', 3),
+        _KeywordWeight('quesadilla', 3), _KeywordWeight('fajita', 3), _KeywordWeight('nachos', 3),
+        _KeywordWeight('guacamole', 2), _KeywordWeight('salsa', 1), _KeywordWeight('tortilla', 2),
+        _KeywordWeight('jalapeño', 2), _KeywordWeight('chimichanga', 3), _KeywordWeight('churro', 3),
+      ],
+      'mediterranean': [
+        _KeywordWeight('mediterran', 3), _KeywordWeight('mediterranean', 3), _KeywordWeight('greek', 3),
+        _KeywordWeight('griechisch', 3), _KeywordWeight('hummus', 3), _KeywordWeight('falafel', 3),
+        _KeywordWeight('tzatziki', 3), _KeywordWeight('feta', 2), _KeywordWeight('pita', 2),
+        _KeywordWeight('couscous', 3), _KeywordWeight('tabouleh', 3), _KeywordWeight('shakshuka', 3),
+      ],
       
-      // Diet types (English IDs)
-      'vegetarian': ['vegetarisch', 'vegetarian', 'veggie', 'gemüse', 'vegetable', 'fleischlos', 'meatless', 'halloumi', 'paneer'],
-      'vegan': ['vegan', 'pflanzlich', 'plant-based', 'ohne tierische', 'dairy-free', 'milchfrei'],
-      'gluten-free': ['glutenfrei', 'gluten-free', 'gluten free', 'ohne gluten', 'zöliakie', 'celiac'],
-      'keto': ['keto', 'ketogen', 'ketogenic'],
-      'low-carb': ['low-carb', 'low carb', 'kohlenhydratarm', 'wenig kohlenhydrate'],
+      // Meal types - moderate specificity
+      'breakfast': [
+        _KeywordWeight('frühstück', 3), _KeywordWeight('breakfast', 3), _KeywordWeight('brunch', 3),
+        _KeywordWeight('pancake', 3), _KeywordWeight('pfannkuchen', 3), _KeywordWeight('omelette', 3),
+        _KeywordWeight('müsli', 3), _KeywordWeight('granola', 3), _KeywordWeight('porridge', 3),
+        _KeywordWeight('waffel', 3), _KeywordWeight('waffle', 3), _KeywordWeight('croissant', 3),
+        _KeywordWeight('french toast', 3),
+      ],
+      'snack': [
+        _KeywordWeight('snack', 3), _KeywordWeight('dessert', 3), _KeywordWeight('nachtisch', 3),
+        _KeywordWeight('kuchen', 3), _KeywordWeight('cake', 3), _KeywordWeight('torte', 3),
+        _KeywordWeight('brownie', 3), _KeywordWeight('cookie', 3), _KeywordWeight('keks', 3),
+        _KeywordWeight('muffin', 3), _KeywordWeight('cupcake', 3), _KeywordWeight('cheesecake', 3),
+        _KeywordWeight('eis', 2), _KeywordWeight('ice cream', 3), _KeywordWeight('pudding', 3),
+      ],
       
-      // Meal types (English IDs)
-      'breakfast': ['frühstück', 'breakfast', 'morning', 'brunch', 'pancake', 'pfannkuchen', 'omelette', 'ei', 'eggs', 'müsli', 'granola', 'toast', 'porridge', 'haferflocken', 'waffel', 'waffle', 'croissant', 'french toast'],
-      'lunch': ['mittagessen', 'lunch', 'mittag'],
-      'dinner': ['abendessen', 'dinner', 'abend'],
-      'snack': ['snack', 'häppchen', 'appetizer', 'vorspeise', 'dessert', 'nachtisch', 'süß', 'sweet', 'kuchen', 'cake', 'torte', 'gebäck', 'pastry', 'chocolate', 'schokolade', 'eis', 'ice cream', 'pudding', 'mousse', 'tarte', 'brownie', 'cookie', 'keks', 'muffin', 'cupcake', 'cheesecake'],
+      // Style categories
+      'healthy': [
+        _KeywordWeight('gesund', 3), _KeywordWeight('healthy', 3), _KeywordWeight('light', 2),
+        _KeywordWeight('salat', 2), _KeywordWeight('salad', 2), _KeywordWeight('superfood', 3),
+        _KeywordWeight('quinoa', 2), _KeywordWeight('bowl', 2), _KeywordWeight('smoothie', 3),
+        _KeywordWeight('low-cal', 3), _KeywordWeight('kalorienarm', 3),
+      ],
+      'comfort-food': [
+        _KeywordWeight('comfort', 3), _KeywordWeight('herzhaft', 2), _KeywordWeight('soul food', 3),
+        _KeywordWeight('eintopf', 3), _KeywordWeight('stew', 2), _KeywordWeight('auflauf', 3),
+        _KeywordWeight('gratin', 3), _KeywordWeight('mac and cheese', 3), _KeywordWeight('käsespätzle', 3),
+        _KeywordWeight('schnitzel', 3), _KeywordWeight('braten', 2),
+      ],
+      'seafood': [
+        _KeywordWeight('seafood', 3), _KeywordWeight('meeresfrüchte', 3), _KeywordWeight('fish', 2),
+        _KeywordWeight('fisch', 2), _KeywordWeight('shrimp', 3), _KeywordWeight('garnelen', 3),
+        _KeywordWeight('salmon', 3), _KeywordWeight('lachs', 3), _KeywordWeight('tuna', 3),
+        _KeywordWeight('thunfisch', 3), _KeywordWeight('lobster', 3), _KeywordWeight('hummer', 3),
+        _KeywordWeight('muscheln', 3), _KeywordWeight('mussels', 3),
+      ],
+      'soup': [
+        _KeywordWeight('soup', 3), _KeywordWeight('suppe', 3), _KeywordWeight('brühe', 2),
+        _KeywordWeight('chowder', 3), _KeywordWeight('bisque', 3), _KeywordWeight('gazpacho', 3),
+        _KeywordWeight('minestrone', 3),
+      ],
       
-      // Time-based (English IDs) - will be set based on actual time below
-      'quick': ['schnell', 'quick', 'fast', 'express', 'blitz'],
-      
-      // Difficulty (English IDs)
-      'easy': ['einfach', 'easy', 'simple', 'anfänger', 'beginner'],
-      'advanced': ['aufwendig', 'advanced', 'komplex', 'complex', 'anspruchsvoll'],
-      
-      // Other categories
-      'healthy': ['gesund', 'healthy', 'light', 'leicht', 'fit', 'salat', 'salad', 'low-cal', 'kalorienarm', 'diet', 'diät', 'superfood', 'quinoa', 'avocado', 'spinat', 'spinach', 'kale', 'grünkohl', 'bowl', 'smoothie', 'protein'],
-      'comfort-food': ['comfort', 'herzhaft', 'wärmt', 'soul food', 'eintopf', 'stew', 'auflauf', 'gratin', 'mac and cheese', 'käsespätzle', 'schnitzel', 'braten', 'kartoffel', 'potato', 'püree', 'mashed'],
-      'seafood': ['seafood', 'meeresfrüchte', 'fish', 'fisch', 'shrimp', 'garnelen', 'salmon', 'lachs', 'tuna', 'thunfisch', 'muscheln', 'mussels', 'krabben', 'lobster', 'hummer', 'calamari', 'tintenfisch', 'oyster', 'auster', 'scampi', 'cod', 'kabeljau', 'forelle', 'trout'],
-      'soup': ['soup', 'suppe', 'broth', 'brühe', 'eintopf', 'stew', 'chowder', 'bisque', 'gazpacho', 'minestrone', 'consommé', 'bouillon'],
+      // Diet types - only add if explicitly mentioned
+      'vegetarian': [
+        _KeywordWeight('vegetarisch', 3), _KeywordWeight('vegetarian', 3), _KeywordWeight('veggie', 2),
+      ],
+      'vegan': [
+        _KeywordWeight('vegan', 3), _KeywordWeight('pflanzlich', 2), _KeywordWeight('plant-based', 3),
+      ],
+      'gluten-free': [
+        _KeywordWeight('glutenfrei', 3), _KeywordWeight('gluten-free', 3), _KeywordWeight('gluten free', 3),
+      ],
     };
     
-    // Check each category
+    // Calculate score for each category
+    final categoryScores = <String, int>{};
+    
     for (final entry in categoryKeywords.entries) {
       final categoryId = entry.key;
       final keywords = entry.value;
+      int score = 0;
       
-      // Check if any keyword matches
-      for (final keyword in keywords) {
-        if (searchText.contains(keyword)) {
-          labels.add(categoryId);
-          break; // Found a match for this category, move to next
+      for (final kw in keywords) {
+        if (searchText.contains(kw.keyword)) {
+          score += kw.weight;
         }
       }
-    }
-    
-    // Time-based labels based on actual cooking time
-    final totalTime = (prepTime ?? 0) + (cookTime ?? 0);
-    if (totalTime > 0) {
-      if (totalTime <= 15) {
-        if (!labels.contains('quick')) labels.add('quick');
-      } else if (totalTime <= 30) {
-        labels.add('30min');
-      } else if (totalTime <= 60) {
-        labels.add('under-hour');
+      
+      if (score > 0) {
+        categoryScores[categoryId] = score;
       }
     }
     
-    // Difficulty based on ingredients and time
-    final ingredientCount = ingredients.length;
-    if (!labels.contains('easy') && !labels.contains('advanced')) {
-      if (ingredientCount <= 7 && totalTime <= 30) {
-        labels.add('easy');
-      } else if (ingredientCount > 12 || totalTime > 90) {
-        labels.add('advanced');
-      } else {
-        labels.add('medium');
+    // Sort categories by score (highest first)
+    final sortedCategories = categoryScores.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    
+    // Take only the top 1-3 categories
+    // - Always take the top category if score >= 2
+    // - Take 2nd category only if score >= 3
+    // - Take 3rd category only if score >= 4 (very rarely)
+    final labels = <String>[];
+    
+    for (int i = 0; i < sortedCategories.length && labels.length < 3; i++) {
+      final entry = sortedCategories[i];
+      final minScore = i == 0 ? 2 : (i == 1 ? 3 : 4);
+      
+      if (entry.value >= minScore) {
+        labels.add(entry.key);
       }
     }
     
-    // Check if vegetarian based on ingredients (no meat keywords)
-    final meatKeywords = ['fleisch', 'meat', 'chicken', 'hähnchen', 'beef', 'rind', 'pork', 'schwein', 'lamb', 'lamm', 'bacon', 'speck', 'schinken', 'ham', 'sausage', 'wurst', 'turkey', 'pute', 'duck', 'ente'];
-    final hasMeat = meatKeywords.any((k) => searchText.contains(k));
-    if (!hasMeat && !labels.contains('vegetarian') && !labels.contains('vegan')) {
-      // Check for fish/seafood - vegetarian doesn't include fish
-      final fishKeywords = ['fish', 'fisch', 'salmon', 'lachs', 'tuna', 'shrimp', 'garnelen', 'seafood'];
-      final hasFish = fishKeywords.any((k) => searchText.contains(k));
-      if (!hasFish) {
-        labels.add('vegetarian');
-      }
-    }
-    
-    // If vegan, also add vegetarian
-    if (labels.contains('vegan') && !labels.contains('vegetarian')) {
-      labels.add('vegetarian');
-    }
-    
-    // Add default meal type if none detected
-    if (!labels.any((l) => ['breakfast', 'lunch', 'dinner', 'snack'].contains(l))) {
-      // Default to lunch/dinner based on complexity
+    // If no categories matched, add a default based on time/ingredients
+    if (labels.isEmpty) {
+      final totalTime = (prepTime ?? 0) + (cookTime ?? 0);
+      final ingredientCount = ingredients.length;
+      
       if (totalTime >= 45 || ingredientCount >= 10) {
-        labels.add('dinner');
+        labels.add('comfort-food');
       } else {
-        labels.add('lunch');
+        labels.add('healthy');
       }
     }
     
-    // Always add at least one cuisine/style category if none matched
-    if (!labels.any((l) => ['italian', 'asian', 'mexican', 'mediterranean', 'comfort-food', 'healthy', 'seafood', 'soup'].contains(l))) {
-      labels.add('comfort-food'); // Default fallback
-    }
-    
-    print('🏷️ [RECIPE_SERVICE] Auto-categorized recipe "$name" with labels: $labels');
+    print('🏷️ [RECIPE_SERVICE] Auto-categorized recipe "$name" with ${labels.length} labels: $labels (scores: $categoryScores)');
     return labels;
   }
   
@@ -189,6 +229,56 @@ class RecipeService {
       return updatedCount;
     } catch (e) {
       print('❌ [RECIPE_SERVICE] Failed to update recipes with labels: $e');
+      return 0;
+    }
+  }
+
+  /// Fix recipes that have more than 3 categories by re-categorizing them
+  /// This ensures all recipes have max 3 categories (usually 1-2)
+  Future<int> fixRecipesWithTooManyCategories() async {
+    try {
+      print('🔧 [RECIPE_SERVICE] Fixing recipes with too many categories...');
+      
+      // Get all recipes
+      final response = await _supabase
+          .from('recipes')
+          .select('id, name, description, ingredients, prep_time_minutes, cook_time_minutes, labels');
+      
+      int fixedCount = 0;
+      
+      for (final recipe in response as List) {
+        final currentLabels = (recipe['labels'] as List?) ?? [];
+        
+        // Only fix recipes with more than 3 labels
+        if (currentLabels.length <= 3) {
+          continue;
+        }
+        
+        print('🔄 Fixing "${recipe['name']}" - has ${currentLabels.length} labels: $currentLabels');
+        
+        // Re-generate labels with proper limits
+        final newLabels = _autoCategorizeRecipe(
+          name: recipe['name'] ?? '',
+          description: recipe['description'] ?? '',
+          ingredients: (recipe['ingredients'] as List?) ?? [],
+          prepTime: recipe['prep_time_minutes'] as int?,
+          cookTime: recipe['cook_time_minutes'] as int?,
+        );
+        
+        // Update recipe
+        await _supabase
+            .from('recipes')
+            .update({'labels': newLabels})
+            .eq('id', recipe['id']);
+        
+        print('✅ Fixed "${recipe['name']}" - now has ${newLabels.length} labels: $newLabels');
+        fixedCount++;
+      }
+      
+      print('🎉 [RECIPE_SERVICE] Fixed $fixedCount recipes with too many categories');
+      return fixedCount;
+    } catch (e) {
+      print('❌ [RECIPE_SERVICE] Failed to fix recipes: $e');
       return 0;
     }
   }
@@ -573,6 +663,82 @@ class RecipeService {
       print('✅ [RECIPE_SERVICE] Recipe deleted successfully');
     } catch (e, stackTrace) {
       print('❌ [RECIPE_SERVICE] Failed to delete recipe: $e');
+      print('📚 [RECIPE_SERVICE] Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// Update existing recipe (only by author)
+  Future<void> updateRecipe(
+    String recipeId, {
+    String? name,
+    String? description,
+    String? imageUrl,
+    int? prepTimeMinutes,
+    int? cookTimeMinutes,
+    int? defaultServings,
+    List<Ingredient>? ingredients,
+    List<String>? instructions,
+  }) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        print('❌ [RECIPE_SERVICE] User not authenticated');
+        throw Exception('User not authenticated');
+      }
+
+      print('📝 [RECIPE_SERVICE] Updating recipe: $recipeId');
+      print('👤 [RECIPE_SERVICE] User: ${user.id}');
+
+      // First verify the user is the author
+      final recipe = await _supabase
+          .from('recipes')
+          .select('author_id')
+          .eq('id', recipeId)
+          .single();
+
+      if (recipe['author_id'] != user.id) {
+        print('❌ [RECIPE_SERVICE] User is not the author');
+        throw Exception('You can only edit your own recipes');
+      }
+
+      // Build update data
+      final updateData = <String, dynamic>{};
+      
+      if (name != null) updateData['name'] = name;
+      if (description != null) updateData['description'] = description;
+      if (imageUrl != null) updateData['image_url'] = imageUrl;
+      if (prepTimeMinutes != null) updateData['prep_time_minutes'] = prepTimeMinutes;
+      if (cookTimeMinutes != null) updateData['cook_time_minutes'] = cookTimeMinutes;
+      if (defaultServings != null) updateData['default_servings'] = defaultServings;
+      if (ingredients != null) {
+        updateData['ingredients'] = ingredients.map((i) => i.toJson()).toList();
+      }
+      if (instructions != null) updateData['instructions'] = instructions;
+
+      // Auto-categorize if name or ingredients changed
+      if (name != null || ingredients != null) {
+        final currentRecipe = await getRecipeById(recipeId);
+        final labels = _autoCategorizeRecipe(
+          name: name ?? currentRecipe.name,
+          description: description ?? currentRecipe.description,
+          ingredients: ingredients?.map((i) => i.toJson()).toList() ?? 
+                       currentRecipe.ingredients.map((i) => i.toJson()).toList(),
+          prepTime: prepTimeMinutes ?? currentRecipe.prepTimeMinutes,
+          cookTime: cookTimeMinutes ?? currentRecipe.cookTimeMinutes,
+        );
+        updateData['labels'] = labels;
+      }
+
+      // Update the recipe
+      await _supabase
+          .from('recipes')
+          .update(updateData)
+          .eq('id', recipeId);
+
+      print('✅ [RECIPE_SERVICE] Recipe updated successfully');
+    } catch (e, stackTrace) {
+      print('❌ [RECIPE_SERVICE] Failed to update recipe: $e');
       print('📚 [RECIPE_SERVICE] Stack trace: $stackTrace');
       rethrow;
     }

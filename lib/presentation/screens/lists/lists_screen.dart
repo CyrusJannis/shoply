@@ -201,6 +201,7 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
                                           bottom: 100,
                                         ),
                                         itemCount: sortedLists.length,
+                                        autoScrollerVelocityScalar: 25.0, // Faster auto-scroll when dragging near edges
                                         onReorder: (oldIndex, newIndex) async {
                                           await ref.read(listsNotifierProvider.notifier).reorderLists(oldIndex, newIndex);
                                         },

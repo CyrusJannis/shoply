@@ -14,8 +14,9 @@ import 'package:shoply/presentation/screens/recipes/recipe_drafts_screen.dart';
 
 class AddRecipeScreen extends StatefulWidget {
   final String? draftId;
+  final String? recipeId; // For editing existing recipes
   
-  const AddRecipeScreen({super.key, this.draftId});
+  const AddRecipeScreen({super.key, this.draftId, this.recipeId});
 
   @override
   State<AddRecipeScreen> createState() => _AddRecipeScreenState();
@@ -35,9 +36,11 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
   final _servingsController = TextEditingController(text: '4');
 
   File? _selectedImage;
+  String? _existingImageUrl; // For editing existing recipes
   bool _isLoading = false;
   bool _isLoadingDraft = false;
   String? _currentDraftId;
+  String? _editingRecipeId; // Track if we're editing an existing recipe
 
   final List<_IngredientInput> _ingredients = [_IngredientInput()];
   final List<TextEditingController> _instructionControllers = [TextEditingController()];
@@ -45,8 +48,68 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.draftId != null) {
+    if (widget.recipeId != null) {
+      _loadExistingRecipe(widget.recipeId!);
+    } else if (widget.draftId != null) {
       _loadDraft(widget.draftId!);
+    }
+  }
+
+  void _dismissKeyboard() {
+    FocusScope.of(context).unfocus();
+  }
+
+  Future<void> _loadExistingRecipe(String recipeId) async {
+    setState(() => _isLoadingDraft = true);
+    
+    try {
+      final recipe = await _recipeService.getRecipeById(recipeId);
+      if (mounted) {
+        _editingRecipeId = recipe.id;
+        _nameController.text = recipe.name;
+        _descriptionController.text = recipe.description;
+        _existingImageUrl = recipe.imageUrl;
+        _prepTimeController.text = recipe.prepTimeMinutes.toString();
+        _cookTimeController.text = recipe.cookTimeMinutes.toString();
+        _servingsController.text = recipe.defaultServings.toString();
+        
+        // Load ingredients
+        for (var ing in _ingredients) {
+          ing.dispose();
+        }
+        _ingredients.clear();
+        for (final ing in recipe.ingredients) {
+          final input = _IngredientInput();
+          input.nameController.text = ing.name;
+          input.amountController.text = ing.amount.toString();
+          input.unitController.text = ing.unit;
+          _ingredients.add(input);
+        }
+        if (_ingredients.isEmpty) {
+          _ingredients.add(_IngredientInput());
+        }
+        
+        // Load instructions
+        for (var c in _instructionControllers) {
+          c.dispose();
+        }
+        _instructionControllers.clear();
+        for (final instruction in recipe.instructions) {
+          _instructionControllers.add(TextEditingController(text: instruction));
+        }
+        if (_instructionControllers.isEmpty) {
+          _instructionControllers.add(TextEditingController());
+        }
+        
+        setState(() => _isLoadingDraft = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingDraft = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${context.tr('error')}: $e')),
+        );
+      }
     }
   }
 
@@ -129,7 +192,7 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
   bool get _canPublish {
     return _nameController.text.trim().isNotEmpty &&
            _descriptionController.text.trim().isNotEmpty &&
-           _selectedImage != null &&
+           (_selectedImage != null || _existingImageUrl != null) &&
            _prepTimeController.text.trim().isNotEmpty &&
            _cookTimeController.text.trim().isNotEmpty &&
            _servingsController.text.trim().isNotEmpty &&
@@ -175,9 +238,11 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(
-          widget.draftId != null 
-              ? context.tr('edit_draft') 
-              : context.tr('add_recipe_title'),
+          _editingRecipeId != null
+              ? context.tr('edit_recipe')
+              : widget.draftId != null 
+                  ? context.tr('edit_draft') 
+                  : context.tr('add_recipe_title'),
           style: TextStyle(
             color: textPrimary,
             fontSize: 20,
@@ -224,10 +289,19 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
+      body: GestureDetector(
+        onTap: _dismissKeyboard,
+        child: SafeArea(
+          child: Form(
+            key: _formKey,
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification is ScrollStartNotification) {
+                  _dismissKeyboard();
+                }
+                return false;
+              },
+              child: ListView(
             padding: EdgeInsets.only(
               left: AppDimensions.paddingLarge,
               right: AppDimensions.paddingLarge,
@@ -249,9 +323,14 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
                           image: FileImage(_selectedImage!),
                           fit: BoxFit.cover,
                         )
-                      : null,
+                      : _existingImageUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(_existingImageUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                 ),
-                child: _selectedImage == null
+                child: (_selectedImage == null && _existingImageUrl == null)
                     ? Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -471,10 +550,12 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
             }),
 
             const SizedBox(height: AppDimensions.spacingLarge),
-          ],
+            ],
+          ),
         ),
           ),
         ),
+      ),
     );
   }
 

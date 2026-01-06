@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'dart:io';
 
@@ -33,6 +34,7 @@ import 'package:flutter_app_badger/flutter_app_badger.dart'; // Neu
 import 'package:shoply/data/services/dynamic_tutorial_service.dart';
 import 'package:shoply/presentation/screens/lists/list_settings_screen.dart';
 import 'package:shoply/data/repositories/list_repository.dart';
+import 'package:shoply/presentation/widgets/common/liquid_glass_button.dart';
 
 class ListDetailScreen extends ConsumerStatefulWidget {
   final String listId;
@@ -60,7 +62,9 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
   bool _isDragging = false;
   
   // Auto-scroll state
-  bool _isAutoScrolling = false;
+  Timer? _autoScrollTimer;
+  int _scrollDirection = 0; // -1 = up, 0 = none, 1 = down
+  double _scrollSpeed = 0.0;
   
   // Custom categories cache
   List<CustomCategory> _customCategories = [];
@@ -75,60 +79,85 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
   // Key counter for forcing popup menu rebuild after navigation
   int _popupMenuKeyCounter = 0;
 
+  /// Start the auto-scroll timer
+  void _startAutoScrollTimer() {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = Timer.periodic(const Duration(milliseconds: 16), (_) {
+      _performAutoScroll();
+    });
+  }
+  
+  /// Stop the auto-scroll timer
+  void _stopAutoScrollTimer() {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
+    _scrollDirection = 0;
+    _scrollSpeed = 0.0;
+  }
+  
+  /// Perform the actual scrolling based on current direction and speed
+  void _performAutoScroll() {
+    if (!_isDragging || !_scrollController.hasClients || _scrollDirection == 0) {
+      return;
+    }
+    
+    final currentOffset = _scrollController.offset;
+    final maxOffset = _scrollController.position.maxScrollExtent;
+    
+    if (_scrollDirection < 0) {
+      // Scrolling up
+      if (currentOffset <= 0) return;
+      final newOffset = (currentOffset - _scrollSpeed).clamp(0.0, maxOffset);
+      _scrollController.jumpTo(newOffset);
+    } else if (_scrollDirection > 0) {
+      // Scrolling down
+      if (currentOffset >= maxOffset) return;
+      final newOffset = (currentOffset + _scrollSpeed).clamp(0.0, maxOffset);
+      _scrollController.jumpTo(newOffset);
+    }
+  }
+  
   /// Auto-scroll the list when dragging near edges
   void _handleAutoScroll(double globalY) {
-    if (!_isDragging || !_scrollController.hasClients) return;
+    if (!_isDragging || !_scrollController.hasClients) {
+      _stopAutoScrollTimer();
+      return;
+    }
     
     final screenHeight = MediaQuery.of(context).size.height;
-    final scrollEdgeThreshold = 80.0; // Distance from edge to start scrolling
-    final scrollSpeed = 8.0; // Pixels per tick
+    final topEdge = MediaQuery.of(context).padding.top + kToolbarHeight;
+    final bottomEdge = screenHeight - MediaQuery.of(context).padding.bottom;
+    final scrollEdgeThreshold = 100.0; // Distance from edge to start scrolling
+    final maxScrollSpeed = 12.0; // Maximum pixels per tick
     
-    // Top edge detection
-    if (globalY < scrollEdgeThreshold + MediaQuery.of(context).padding.top + kToolbarHeight) {
-      if (!_isAutoScrolling) {
-        _isAutoScrolling = true;
-        _autoScrollUp();
+    // Calculate distance from edges
+    final distanceFromTop = globalY - topEdge;
+    final distanceFromBottom = bottomEdge - globalY;
+    
+    // Top edge detection - scroll up
+    if (distanceFromTop < scrollEdgeThreshold && distanceFromTop > 0) {
+      // Calculate speed based on proximity (closer = faster)
+      final proximity = 1.0 - (distanceFromTop / scrollEdgeThreshold);
+      _scrollSpeed = maxScrollSpeed * proximity.clamp(0.2, 1.0);
+      _scrollDirection = -1;
+      if (_autoScrollTimer == null) {
+        _startAutoScrollTimer();
       }
     }
-    // Bottom edge detection
-    else if (globalY > screenHeight - scrollEdgeThreshold - MediaQuery.of(context).padding.bottom) {
-      if (!_isAutoScrolling) {
-        _isAutoScrolling = true;
-        _autoScrollDown();
+    // Bottom edge detection - scroll down
+    else if (distanceFromBottom < scrollEdgeThreshold && distanceFromBottom > 0) {
+      // Calculate speed based on proximity (closer = faster)
+      final proximity = 1.0 - (distanceFromBottom / scrollEdgeThreshold);
+      _scrollSpeed = maxScrollSpeed * proximity.clamp(0.2, 1.0);
+      _scrollDirection = 1;
+      if (_autoScrollTimer == null) {
+        _startAutoScrollTimer();
       }
     }
     // Not near edges - stop auto-scrolling
     else {
-      _isAutoScrolling = false;
-    }
-  }
-  
-  void _autoScrollUp() async {
-    while (_isAutoScrolling && _isDragging && _scrollController.hasClients) {
-      final currentOffset = _scrollController.offset;
-      if (currentOffset <= 0) {
-        _isAutoScrolling = false;
-        break;
-      }
-      
-      final newOffset = (currentOffset - 8.0).clamp(0.0, _scrollController.position.maxScrollExtent);
-      _scrollController.jumpTo(newOffset);
-      await Future.delayed(const Duration(milliseconds: 16)); // ~60fps
-    }
-  }
-  
-  void _autoScrollDown() async {
-    while (_isAutoScrolling && _isDragging && _scrollController.hasClients) {
-      final currentOffset = _scrollController.offset;
-      final maxOffset = _scrollController.position.maxScrollExtent;
-      if (currentOffset >= maxOffset) {
-        _isAutoScrolling = false;
-        break;
-      }
-      
-      final newOffset = (currentOffset + 8.0).clamp(0.0, maxOffset);
-      _scrollController.jumpTo(newOffset);
-      await Future.delayed(const Duration(milliseconds: 16)); // ~60fps
+      _scrollDirection = 0;
+      _scrollSpeed = 0.0;
     }
   }
 
@@ -197,6 +226,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
 
   @override
   void dispose() {
+    _autoScrollTimer?.cancel();
     _searchController.dispose();
     _focusNode.dispose();
     _scrollController.dispose();
@@ -252,15 +282,35 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
           ),
         ),
         actions: [
-          // Settings button
+          // Settings button - iOS 26 Liquid Glass style
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: PopupMenuButton<int>(
+            child: LiquidGlassPopupMenuButton<int>(
               key: ValueKey('settings_popup_$_popupMenuKeyCounter'),
-              icon: Icon(
-                Icons.settings,
-                color: AppColors.textPrimary(context),
-              ),
+              icon: Icons.more_horiz,
+              size: 36,
+              items: [
+                LiquidGlassMenuItem(
+                  label: context.tr('rename_list'),
+                  icon: Icons.edit,
+                  value: 0,
+                ),
+                LiquidGlassMenuItem(
+                  label: context.tr('change_background'),
+                  icon: Icons.image,
+                  value: 1,
+                ),
+                LiquidGlassMenuItem(
+                  label: context.tr('category_order'),
+                  icon: Icons.reorder,
+                  value: 2,
+                ),
+                LiquidGlassMenuItem(
+                  label: context.tr('list_settings'),
+                  icon: Icons.settings,
+                  value: 3,
+                ),
+              ],
               onSelected: (index) async {
                 setState(() {
                   _popupMenuKeyCounter++;
@@ -276,59 +326,14 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                   _showListSettingsScreen();
                 }
               },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 0,
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit, size: 20, color: AppColors.textSecondary(context)),
-                      const SizedBox(width: 12),
-                      Text(context.tr('rename_list')),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 1,
-                  child: Row(
-                    children: [
-                      Icon(Icons.image, size: 20, color: AppColors.textSecondary(context)),
-                      const SizedBox(width: 12),
-                      Text(context.tr('change_background')),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 2,
-                  child: Row(
-                    children: [
-                      Icon(Icons.reorder, size: 20, color: AppColors.textSecondary(context)),
-                      const SizedBox(width: 12),
-                      Text(context.tr('category_order')),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 3,
-                  child: Row(
-                    children: [
-                      Icon(Icons.settings, size: 20, color: AppColors.textSecondary(context)),
-                      const SizedBox(width: 12),
-                      Text(context.tr('list_settings')),
-                    ],
-                  ),
-                ),
-              ],
             ),
           ),
-          // Share button
+          // Share button - iOS 26 Liquid Glass style
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: IconButton(
-              icon: Icon(
-                Icons.share_rounded,
-                size: 22,
-                color: AppColors.textPrimary(context),
-              ),
+            child: LiquidGlassButton(
+              icon: Icons.share_rounded,
+              size: 36,
               onPressed: _showShareDialog,
             ),
           ),
@@ -1992,7 +1997,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
         _handleAutoScroll(details.globalPosition.dy);
       },
       onDragEnd: (details) {
-        _isAutoScrolling = false;
+        _stopAutoScrollTimer();
         setState(() {
           _isDragging = false;
           _draggedItem = null;
@@ -2000,7 +2005,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
         });
       },
       onDraggableCanceled: (_, __) {
-        _isAutoScrolling = false;
+        _stopAutoScrollTimer();
         setState(() {
           _isDragging = false;
           _draggedItem = null;

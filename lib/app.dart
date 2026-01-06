@@ -10,9 +10,10 @@ import 'package:shoply/core/widgets/update_dialog.dart';
 import 'package:shoply/data/services/supabase_service.dart';
 import 'package:shoply/presentation/state/theme_provider.dart';
 import 'package:shoply/presentation/state/language_provider.dart';
-import 'package:shoply/presentation/widgets/dynamic_tutorial_overlay.dart';
+import 'package:shoply/presentation/widgets/tutorial/tutorial_overlay.dart';
 import 'package:shoply/routes/app_router.dart';
 import 'package:shoply/data/services/deep_link_service.dart';
+import 'package:shoply/data/services/navigation_service.dart';
 
 class ShoplyAIApp extends ConsumerStatefulWidget {
   const ShoplyAIApp({super.key});
@@ -46,6 +47,10 @@ class _ShoplyAIAppState extends ConsumerState<ShoplyAIApp> {
   Future<void> _initializeDeepLinks() async {
     try {
       final router = ref.read(routerProvider);
+      
+      // Set router in NavigationService for notification handling
+      NavigationService.instance.setRouter(router);
+      
       await DeepLinkService.instance.initialize(router);
       
       // Process any pending deep link that opened the app
@@ -92,8 +97,8 @@ class _ShoplyAIAppState extends ConsumerState<ShoplyAIApp> {
           showUpdateDialogIfNeeded(context);
         });
 
-        // Wrap with dynamic tutorial overlay
-        return DynamicTutorialOverlay(
+        // Wrap with tutorial overlay
+        return TutorialOverlay(
           child: child!,
         );
       },

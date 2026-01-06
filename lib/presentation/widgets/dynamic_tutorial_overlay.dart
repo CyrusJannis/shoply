@@ -90,9 +90,16 @@ class _DynamicTutorialOverlayState extends State<DynamicTutorialOverlay>
   double _getHighlightPadding(TutorialStepId? stepId) {
     switch (stepId) {
       case TutorialStepId.navigateToRecipes:
-        return 6.0;
+        return 4.0; // Small padding for navbar icons (48x48 target)
+      case TutorialStepId.openShoppingList:
+        return 4.0; // Small padding for list cards
+      case TutorialStepId.showListItems:
+      case TutorialStepId.showInputField:
+      case TutorialStepId.showRecipes:
+      case TutorialStepId.showCreateRecipe:
+        return 8.0; // Slightly larger padding for info steps
       default:
-        return 0.0;
+        return 4.0;
     }
   }
 

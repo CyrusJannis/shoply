@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shoply/data/models/recipe.dart';
 import 'package:shoply/data/services/recipe_service.dart';
+import 'package:shoply/data/services/app_review_service.dart';
 
 /// State for saved recipes
 class SavedRecipesState {
@@ -95,6 +96,14 @@ class SavedRecipesNotifier extends StateNotifier<SavedRecipesState> {
       } else {
         // Reload full list to update recipes
         await loadSavedRecipes();
+        
+        // Track positive action for app review (saving a recipe)
+        if (!isSaved) {
+          // Only track when saving, not when unsaving
+          await AppReviewService.instance.trackPositiveAction('saved_recipe');
+          // Maybe request review after positive moment
+          await AppReviewService.instance.maybeRequestReview(reason: 'saved_recipe');
+        }
       }
 
       return success;

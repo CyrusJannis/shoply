@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/categories.dart';
 import 'package:shoply/core/localization/localization_helper.dart';
+import 'package:shoply/data/models/list_activity.dart';
+import 'package:shoply/data/services/list_activity_service.dart';
+import 'package:shoply/presentation/widgets/common/liquid_glass_button.dart';
 
 /// Per-list custom category management and category ordering.
 
@@ -138,6 +142,7 @@ class CategoryOrderScreen extends StatefulWidget {
 
 class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
   final _service = CategoryOrderService();
+  final _activityService = ListActivityService();
   List<_CategoryItem> _categories = [];
   bool _isLoading = true;
   bool _hasChanges = false;
@@ -209,10 +214,23 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
     });
   }
 
-  Future<void> _saveOrder() async {
+  Future<void> _saveOrder({bool logActivity = false}) async {
     final order = _categories.map((c) => c.id).toList();
     await _service.saveCategoryOrder(widget.listId, order);
     setState(() => _hasChanges = true);
+    
+    // Log activity and send notification for reorder
+    if (logActivity) {
+      await _activityService.logActivity(
+        listId: widget.listId,
+        type: ListActivityType.categoryReordered,
+      );
+      await _activityService.notifyCategoryChange(
+        listId: widget.listId,
+        listName: widget.listName,
+        type: ListActivityType.categoryReordered,
+      );
+    }
   }
 
   void _showAddCategoryDialog() {
@@ -226,13 +244,12 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           final isDark = Theme.of(context).brightness == Brightness.dark;
-          return Container(
+          return AdaptiveBlurView(
+            blurStyle: BlurStyle.systemMaterial,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: Container(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey[900] : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -240,36 +257,32 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Handle bar
+                  // Glass handle bar
                   Center(
                     child: Container(
                       width: 40,
-                      height: 4,
+                      height: 5,
                       decoration: BoxDecoration(
-                        color: Colors.grey[400],
-                        borderRadius: BorderRadius.circular(2),
+                        color: isDark ? Colors.white.withOpacity(0.4) : Colors.black.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   Text(
                     context.tr('add_category'),
-                    style: const TextStyle(
-                      fontSize: 20,
+                    style: TextStyle(
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  TextField(
+                  const SizedBox(height: 24),
+                  // Glass text field
+                  AdaptiveTextField(
                     controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: context.tr('category_name'),
-                      hintText: context.tr('category_name_hint'),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                    ),
+                    placeholder: context.tr('category_name_hint'),
                     autofocus: true,
                     textCapitalization: TextCapitalization.sentences,
                   ),
@@ -324,14 +337,16 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
                       ),
                     )).toList(),
                   ),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: () async {
+                  const SizedBox(height: 28),
+                  LiquidGlassFilledButton(
+                    label: context.tr('add'),
+                    onPressed: nameController.text.trim().isEmpty ? null : () async {
                       if (nameController.text.trim().isEmpty) return;
                       
+                      final categoryName = nameController.text.trim();
                       final category = await _service.addCustomCategory(
                         widget.listId,
-                        nameController.text.trim(),
+                        categoryName,
                         selectedColor,
                       );
                       
@@ -347,18 +362,26 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
                         _hasChanges = true;
                       });
                       await _saveOrder();
+                      
+                      // Log activity and send notification
+                      await _activityService.logActivity(
+                        listId: widget.listId,
+                        type: ListActivityType.categoryAdded,
+                        metadata: {'categoryName': categoryName},
+                      );
+                      await _activityService.notifyCategoryChange(
+                        listId: widget.listId,
+                        listName: widget.listName,
+                        type: ListActivityType.categoryAdded,
+                        categoryName: categoryName,
+                      );
                     },
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(context.tr('add')),
                   ),
-                  const SizedBox(height: 8),
+                  // Extra padding for iOS 26 home indicator/navbar
+                  SizedBox(height: 34 + MediaQuery.of(context).viewPadding.bottom),
                 ],
               ),
+            ),
             ),
           );
         },
@@ -377,13 +400,12 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           final isDark = Theme.of(context).brightness == Brightness.dark;
-          return Container(
+          return AdaptiveBlurView(
+            blurStyle: BlurStyle.systemMaterial,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: Container(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey[900] : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -391,35 +413,32 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Handle bar
+                  // Glass handle bar
                   Center(
                     child: Container(
                       width: 40,
-                      height: 4,
+                      height: 5,
                       decoration: BoxDecoration(
-                        color: Colors.grey[400],
-                        borderRadius: BorderRadius.circular(2),
+                        color: isDark ? Colors.white.withOpacity(0.4) : Colors.black.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   Text(
                     context.tr('edit_category'),
-                    style: const TextStyle(
-                      fontSize: 20,
+                    style: TextStyle(
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  TextField(
+                  const SizedBox(height: 24),
+                  // Glass text field
+                  AdaptiveTextField(
                     controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: context.tr('category_name'),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                    ),
+                    placeholder: context.tr('category_name'),
                     textCapitalization: TextCapitalization.sentences,
                   ),
                   const SizedBox(height: 20),
@@ -473,27 +492,21 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
                       ),
                     )).toList(),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
+                        child: LiquidGlassOutlinedButton(
+                          label: context.tr('delete'),
+                          isDestructive: true,
                           onPressed: () => _showDeleteConfirmation(category),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(context.tr('delete')),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         flex: 2,
-                        child: FilledButton(
+                        child: LiquidGlassFilledButton(
+                          label: context.tr('save'),
                           onPressed: () async {
                             if (nameController.text.trim().isEmpty) return;
                             
@@ -519,20 +532,15 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
                               _hasChanges = true;
                             });
                           },
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(context.tr('save')),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  // Extra padding for iOS 26 home indicator/navbar
+                  SizedBox(height: 34 + MediaQuery.of(context).viewPadding.bottom),
                 ],
               ),
+            ),
             ),
           );
         },
@@ -542,135 +550,89 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
 
   void _showDeleteConfirmation(_CategoryItem category) {
     Navigator.pop(context); // Close edit sheet first
-    showDialog(
+    final categoryName = category.name;
+    
+    AdaptiveAlertDialog.show(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.tr('delete_category')),
-        content: Text(context.tr('delete_category_confirm')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(context.tr('cancel')),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            onPressed: () async {
-              await _service.deleteCustomCategory(widget.listId, category.id);
-              Navigator.pop(context);
-              setState(() {
-                _categories.removeWhere((c) => c.id == category.id);
-                _hasChanges = true;
-              });
-            },
-            child: Text(context.tr('delete')),
-          ),
-        ],
-      ),
+      title: context.tr('delete_category'),
+      message: context.tr('delete_category_confirm'),
+      icon: PlatformInfo.isIOS26OrHigher() ? 'trash.fill' : Icons.delete,
+      iconColor: Colors.red,
+      actions: [
+        AlertAction(
+          title: context.tr('cancel'),
+          style: AlertActionStyle.cancel,
+          onPressed: () {},
+        ),
+        AlertAction(
+          title: context.tr('delete'),
+          style: AlertActionStyle.destructive,
+          onPressed: () async {
+            await _service.deleteCustomCategory(widget.listId, category.id);
+            setState(() {
+              _categories.removeWhere((c) => c.id == category.id);
+              _hasChanges = true;
+            });
+            
+            // Log activity and send notification
+            await _activityService.logActivity(
+              listId: widget.listId,
+              type: ListActivityType.categoryRemoved,
+              metadata: {'categoryName': categoryName},
+            );
+            await _activityService.notifyCategoryChange(
+              listId: widget.listId,
+              listName: widget.listName,
+              type: ListActivityType.categoryRemoved,
+              categoryName: categoryName,
+            );
+          },
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isIOS26 = PlatformInfo.isIOS26OrHigher();
     
     return Scaffold(
       backgroundColor: isDark ? Colors.black : Colors.grey[100],
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: isIOS26
-            ? Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: AdaptiveButton.sfSymbol(
-                  sfSymbol: const SFSymbol('xmark'),
-                  style: AdaptiveButtonStyle.glass,
-                  size: AdaptiveButtonSize.small,
-                  onPressed: () => Navigator.pop(context, _hasChanges),
-                ),
-              )
-            : IconButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.grey[800] : Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.close, size: 20),
-                ),
-                onPressed: () => Navigator.pop(context, _hasChanges),
-              ),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: Center(
+            child: LiquidGlassButton(
+              icon: Icons.close,
+              onPressed: () => Navigator.pop(context, _hasChanges),
+            ),
+          ),
+        ),
         title: Text(
           context.tr('category_order'),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         actions: [
-          // Add button
-          isIOS26
-              ? Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: AdaptiveButton.sfSymbol(
-                    sfSymbol: const SFSymbol('plus'),
-                    style: AdaptiveButtonStyle.glass,
-                    size: AdaptiveButtonSize.small,
-                    onPressed: _showAddCategoryDialog,
-                  ),
-                )
-              : IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.grey[800] : Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.add, size: 20),
-                  ),
-                  onPressed: _showAddCategoryDialog,
-                ),
-          // Done button
-          isIOS26
-              ? Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: AdaptiveButton.sfSymbol(
-                    sfSymbol: const SFSymbol('checkmark'),
-                    style: AdaptiveButtonStyle.prominentGlass,
-                    size: AdaptiveButtonSize.small,
-                    onPressed: () => Navigator.pop(context, _hasChanges),
-                  ),
-                )
-              : IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightAccent,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.lightAccent.withOpacity(0.3),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.check, size: 20, color: Colors.white),
-                  ),
-                  onPressed: () => Navigator.pop(context, _hasChanges),
-                ),
-          if (!isIOS26) const SizedBox(width: 8),
+          // Add button - iOS 26 Glass
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: LiquidGlassButton(
+              icon: Icons.add,
+              onPressed: _showAddCategoryDialog,
+            ),
+          ),
+          // Done button - iOS 26 Filled Glass
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: LiquidGlassButton(
+              icon: Icons.check,
+              onPressed: () => Navigator.pop(context, _hasChanges),
+              isFilled: true,
+            ),
+          ),
         ],
       ),
       body: _isLoading
@@ -716,6 +678,8 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
                   child: ReorderableListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: _categories.length,
+                    // Enable faster auto-scroll when dragging near edges
+                    autoScrollerVelocityScalar: 25.0, // Increased from default 50ms to be faster
                     onReorder: (oldIndex, newIndex) {
                       HapticFeedback.mediumImpact();
                       setState(() {
@@ -723,7 +687,7 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
                         final item = _categories.removeAt(oldIndex);
                         _categories.insert(newIndex, item);
                       });
-                      _saveOrder();
+                      _saveOrder(logActivity: true);
                     },
                     proxyDecorator: (child, index, animation) {
                       return AnimatedBuilder(

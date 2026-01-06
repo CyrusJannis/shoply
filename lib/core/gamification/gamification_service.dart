@@ -111,7 +111,7 @@ class GamificationService {
       ('Hey $name! 👋 Lunch run or afternoon shopping?', AvoExpression.happy),
       ('Good afternoon! 🌤️ Need help with your list?', AvoExpression.happy),
       ('Hi there! Perfect time for a quick shop! 🛒', AvoExpression.happy),
-      ('Afternoon, $name! What goodies are we getting?', AvoExpression.confused),
+      ('Afternoon, $name! What goodies are we getting?', AvoExpression.thinking),
     ];
     return greetings[_random.nextInt(greetings.length)];
   }
@@ -119,7 +119,7 @@ class GamificationService {
   (String, AvoExpression) _getEveningGreeting(String name) {
     final greetings = [
       ('Evening, $name! 🌙 Last-minute shopping?', AvoExpression.happy),
-      ('Hey! Planning tomorrow\'s meals? 🍳', AvoExpression.confused),
+      ('Hey! Planning tomorrow\'s meals? 🍳', AvoExpression.thinking),
       ('Good evening! 🌆 Let\'s check what you need!', AvoExpression.happy),
       ('Hi $name! Dinner prep time? I\'m here to help!', AvoExpression.happy),
     ];
@@ -235,11 +235,11 @@ class GamificationService {
   /// Get a random shopping tip
   (String tip, AvoExpression mood) getRandomTip() {
     final tips = [
-      ('💡 Tip: Shop the perimeter first for fresh items!', AvoExpression.confused),
-      ('💡 Pro tip: Check your fridge before shopping!', AvoExpression.confused),
-      ('💡 Family hack: Let everyone add to the list!', AvoExpression.happy),
-      ('💡 Save time: Group items by store section!', AvoExpression.confused),
-      ('💡 Budget tip: Make a list and stick to it!', AvoExpression.success),
+      ('💡 Tip: Shop the perimeter first for fresh items!', AvoExpression.thinking),
+      ('💡 Pro tip: Check your fridge before shopping!', AvoExpression.thinking),
+      ('💡 Family hack: Let everyone add to the list!', AvoExpression.excited),
+      ('💡 Save time: Group items by store section!', AvoExpression.thinking),
+      ('💡 Budget tip: Make a list and stick to it!', AvoExpression.celebrating),
       ('💡 Eco tip: Bring your reusable bags! 🌱', AvoExpression.happy),
     ];
     return tips[_random.nextInt(tips.length)];

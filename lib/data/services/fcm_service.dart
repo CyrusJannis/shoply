@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shoply/data/services/supabase_service.dart';
 import 'package:shoply/data/services/notification_service.dart';
+import 'package:shoply/data/services/navigation_service.dart';
 import 'dart:io';
 
 /// Handle Firebase Cloud Messaging background messages
@@ -190,32 +191,40 @@ class FCMService {
     debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     final type = message.data['type'] as String?;
-    
-    // TODO: Add navigation logic based on notification type
-    // This requires access to Navigator context
-    // You can implement this using a global navigator key
-    
-    /*
-    Example navigation logic:
-    
+    final listId = message.data['listId'] as String?;
+    final listName = message.data['listName'] as String?;
+    final recipeId = message.data['recipeId'] as String?;
+
+    // Navigate based on notification type
     switch (type) {
+      case 'list_activity':
+      case 'category_change':
+        // Navigate to list activities screen for activity notifications
+        if (listId != null) {
+          NavigationService.instance.navigateToListActivities(listId, listName: listName);
+        }
+        break;
       case 'list_update':
-        final listId = message.data['listId'];
-        navigatorKey.currentContext?.push('/lists/$listId');
+      case 'list_invitation':
+        // Navigate to list detail screen
+        if (listId != null) {
+          NavigationService.instance.navigateToList(listId, listName: listName);
+        }
         break;
       case 'recipe_rating':
       case 'recipe_comment':
-        final recipeId = message.data['recipeId'];
-        navigatorKey.currentContext?.push('/recipes/$recipeId');
-        break;
-      case 'list_invitation':
-        final listId = message.data['listId'];
-        navigatorKey.currentContext?.push('/lists/$listId');
+        // Navigate to recipe detail screen
+        if (recipeId != null) {
+          NavigationService.instance.navigateToRecipe(recipeId);
+        }
         break;
       default:
         debugPrint('⚠️ [FCM] Unknown notification type: $type');
+        // Default: navigate to list if listId is available
+        if (listId != null) {
+          NavigationService.instance.navigateToList(listId, listName: listName);
+        }
     }
-    */
   }
 
   /// Get current FCM token

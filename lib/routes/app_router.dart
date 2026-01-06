@@ -7,6 +7,7 @@ import 'package:shoply/presentation/screens/home/home_screen.dart';
 import 'package:shoply/presentation/screens/recipes/recipes_screen.dart';
 import 'package:shoply/presentation/screens/recipes/recipe_detail_screen.dart';
 import 'package:shoply/presentation/screens/recipes/add_recipe_screen.dart';
+import 'package:shoply/presentation/screens/recipes/multi_step_recipe_screen.dart';
 import 'package:shoply/presentation/screens/recipes/recipe_author_page.dart';
 import 'package:shoply/presentation/screens/recipes/saved_recipes_screen.dart';
 import 'package:shoply/presentation/screens/recipes/my_recipes_screen.dart';
@@ -16,6 +17,7 @@ import 'package:shoply/presentation/screens/recipes/all_recipes_screen.dart';
 import 'package:shoply/presentation/screens/recipes/recipe_drafts_screen.dart';
 import 'package:shoply/presentation/screens/profile/profile_screen.dart';
 import 'package:shoply/presentation/screens/lists/list_detail_screen.dart';
+import 'package:shoply/presentation/screens/lists/list_activities_screen.dart';
 import 'package:shoply/presentation/screens/lists/list_background_selection_screen.dart';
 import 'package:shoply/presentation/screens/lists/list_background_picker_screen.dart';
 import 'package:shoply/presentation/screens/main_scaffold.dart';
@@ -132,6 +134,20 @@ final routerProvider = Provider<GoRouter>((ref) {
                 listName: listName,
               );
             },
+            routes: [
+              GoRoute(
+                path: 'activities',
+                name: 'list-activities',
+                builder: (context, state) {
+                  final listId = state.pathParameters['listId']!;
+                  final listName = state.uri.queryParameters['name'] ?? 'Shopping List';
+                  return ListActivitiesScreen(
+                    listId: listId,
+                    listName: listName,
+                  );
+                },
+              ),
+            ],
           ),
           // AI tab temporarily disabled - will be reactivated later
           // GoRoute(
@@ -156,7 +172,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>?;
                   final draftId = extra?['draftId'] as String?;
-                  return AddRecipeScreen(draftId: draftId);
+                  final recipeId = extra?['recipeId'] as String?;
+                  return MultiStepRecipeScreen(draftId: draftId, recipeId: recipeId);
                 },
               ),
               GoRoute(

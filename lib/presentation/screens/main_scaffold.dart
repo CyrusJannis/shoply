@@ -53,33 +53,71 @@ class MainScaffold extends StatelessWidget {
     final tutorial = DynamicTutorialService.instance;
 
     // For iOS 26+, use native UITabBar with SF Symbols
-    // For older versions, use Material icons
+    // Use a Stack to overlay an invisible tutorial target over the recipes tab
     if (isIOS26Plus) {
-      return AdaptiveScaffold(
-        body: child,
-        minimizeBehavior: TabBarMinimizeBehavior.never,
-        bottomNavigationBar: isKeyboardVisible ? null : AdaptiveBottomNavigationBar(
-          useNativeBottomBar: true,
-          selectedIndex: selectedIndex,
-          onTap: (index) {
-            HapticFeedback.lightImpact();
-            _onItemTapped(context, index, fromTutorial: true);
-          },
-          items: const [
-            AdaptiveNavigationDestination(
-              icon: 'house.fill',
-              label: '',
+      final screenWidth = MediaQuery.of(context).size.width;
+      final safeBottom = MediaQuery.of(context).padding.bottom;
+      
+      return Stack(
+        children: [
+          AdaptiveScaffold(
+            body: child,
+            minimizeBehavior: TabBarMinimizeBehavior.never,
+            bottomNavigationBar: isKeyboardVisible ? null : AdaptiveBottomNavigationBar(
+              useNativeBottomBar: true,
+              selectedIndex: selectedIndex,
+              onTap: (index) {
+                HapticFeedback.lightImpact();
+                _onItemTapped(context, index, fromTutorial: true);
+              },
+              items: const [
+                AdaptiveNavigationDestination(
+                  icon: 'house.fill',
+                  label: '',
+                ),
+                AdaptiveNavigationDestination(
+                  icon: 'fork.knife',
+                  label: '',
+                ),
+                AdaptiveNavigationDestination(
+                  icon: 'person.fill',
+                  label: '',
+                ),
+              ],
             ),
-            AdaptiveNavigationDestination(
-              icon: 'fork.knife',
-              label: '',
+          ),
+          // Invisible overlay for tutorial targeting - positioned exactly over the tab icons
+          // Native UITabBar icons are approximately 28x28pt, centered in their tab area
+          if (!isKeyboardVisible)
+            Positioned(
+              // Center tab (recipes) - position exactly at center icon
+              left: screenWidth / 2 - 24, // Center minus half icon width
+              width: 48, // Icon touch area
+              // Position at the center of the tab bar
+              bottom: safeBottom + 12, // Center of 49pt tab bar
+              height: 48, // Icon touch area
+              child: IgnorePointer(
+                child: Container(
+                  key: tutorial.recipesTabKey,
+                  color: Colors.transparent,
+                ),
+              ),
             ),
-            AdaptiveNavigationDestination(
-              icon: 'person.fill',
-              label: '',
+          // Home tab overlay (left tab icon)
+          if (!isKeyboardVisible)
+            Positioned(
+              left: screenWidth / 6 - 24, // Center of left third minus half icon width
+              width: 48,
+              bottom: safeBottom + 12,
+              height: 48,
+              child: IgnorePointer(
+                child: Container(
+                  key: tutorial.homeTabKey,
+                  color: Colors.transparent,
+                ),
+              ),
             ),
-          ],
-        ),
+        ],
       );
     }
 

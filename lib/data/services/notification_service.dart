@@ -29,6 +29,7 @@ import 'dart:io';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shoply/data/services/navigation_service.dart';
 
 class NotificationService {
   static NotificationService? _instance;
@@ -101,18 +102,42 @@ class NotificationService {
     try {
       final data = jsonDecode(response.payload!);
       final type = data['type'] as String?;
+      final listId = data['listId'] as String?;
+      final listName = data['listName'] as String?;
+      final recipeId = data['recipeId'] as String?;
 
       debugPrint('🔔 [NOTIFICATIONS] Type: $type, Data: $data');
 
-      // TODO: Add navigation logic based on notification type
-      // Example:
-      // if (type == 'list_update') {
-      //   final listId = data['listId'];
-      //   navigatorKey.currentContext?.push('/lists/$listId');
-      // } else if (type == 'recipe_like') {
-      //   final recipeId = data['recipeId'];
-      //   navigatorKey.currentContext?.push('/recipes/$recipeId');
-      // }
+      // Navigate based on notification type
+      switch (type) {
+        case 'list_activity':
+        case 'category_change':
+          // Navigate to list activities screen for activity notifications
+          if (listId != null) {
+            NavigationService.instance.navigateToListActivities(listId, listName: listName);
+          }
+          break;
+        case 'list_update':
+        case 'list_invitation':
+          // Navigate to list detail screen
+          if (listId != null) {
+            NavigationService.instance.navigateToList(listId, listName: listName);
+          }
+          break;
+        case 'recipe_like':
+        case 'recipe_comment':
+          // Navigate to recipe detail screen
+          if (recipeId != null) {
+            NavigationService.instance.navigateToRecipe(recipeId);
+          }
+          break;
+        default:
+          debugPrint('⚠️ [NOTIFICATIONS] Unknown notification type: $type');
+          // Default: navigate to list if listId is available
+          if (listId != null) {
+            NavigationService.instance.navigateToList(listId, listName: listName);
+          }
+      }
     } catch (e) {
       debugPrint('❌ [NOTIFICATIONS] Failed to parse payload: $e');
     }
@@ -197,8 +222,9 @@ class NotificationService {
       title: '$listName',
       body: '$updatedBy added "$itemName"',
       payload: jsonEncode({
-        'type': 'list_update',
+        'type': 'list_activity',
         'listId': listId,
+        'listName': listName,
       }),
     );
     print('✅ [NOTIFICATIONS] _showNotification() completed');
@@ -367,8 +393,9 @@ class NotificationService {
       title: '$listName',
       body: '$deletedBy removed "$itemName"',
       payload: jsonEncode({
-        'type': 'item_deleted',
+        'type': 'list_activity',
         'listId': listId,
+        'listName': listName,
       }),
     );
   }
@@ -404,8 +431,9 @@ class NotificationService {
       title: '$listName',
       body: '$toggledBy $action "$itemName"',
       payload: jsonEncode({
-        'type': 'item_toggled',
+        'type': 'list_activity',
         'listId': listId,
+        'listName': listName,
       }),
     );
   }

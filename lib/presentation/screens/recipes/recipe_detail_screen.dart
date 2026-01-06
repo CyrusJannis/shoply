@@ -329,9 +329,30 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   );
                 },
               ),
-              // Bookmark button
+              // Edit button (only for own recipes) or Bookmark button (for others)
               Consumer(
                 builder: (context, ref, _) {
+                  final currentUser = ref.watch(currentUserProvider).value;
+                  final isOwnRecipe = currentUser != null && _recipe?.authorId == currentUser.id;
+                  
+                  if (isOwnRecipe) {
+                    // Edit button for own recipes
+                    return Container(
+                      margin: const EdgeInsets.only(right: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.edit_rounded, color: Colors.white, size: 22),
+                        onPressed: () {
+                          context.push('/recipes/add', extra: {'recipeId': widget.recipeId});
+                        },
+                      ),
+                    );
+                  }
+                  
+                  // Bookmark button for other users' recipes
                   final isSaved = ref.watch(isRecipeSavedProvider(widget.recipeId));
                   return Container(
                     margin: const EdgeInsets.only(right: 4),

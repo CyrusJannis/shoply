@@ -13,6 +13,7 @@ import 'package:shoply/data/services/notification_service.dart';
 import 'package:shoply/data/services/fcm_service.dart';
 import 'package:shoply/data/services/mascot_notification_service.dart';
 import 'package:shoply/data/services/recipe_service.dart';
+import 'package:shoply/data/services/app_review_service.dart';
 import 'package:shoply/core/services/siri_service.dart';
 import 'package:shoply/core/config/env.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -106,6 +107,9 @@ void main() async {
         debugPrint('⚠️ [MAIN] FCM initialization failed (may need GoogleService-Info.plist): $e');
         // Continue without FCM - local notifications will still work
       }
+      
+      // Track app open for review prompts
+      await AppReviewService.instance.trackAppOpen();
     } else {
       debugPrint('⚠️ [MAIN] Skipping notifications - not iOS/Android');
     }

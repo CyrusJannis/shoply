@@ -107,7 +107,7 @@ class DynamicTutorialService extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Error checking tutorial status: \$e');
+      debugPrint('Error checking tutorial status: $e');
       _isInitialized = true;
     }
   }
@@ -140,9 +140,9 @@ class DynamicTutorialService extends ChangeNotifier {
         return TutorialStep(
           id: stepId,
           type: TutorialStepType.info,
-          message: 'Hallo! Willkommen bei Shoply. Lass mich dir zeigen, wie alles funktioniert!',
+          message: 'Ich bin Avo, dein Einkaufshelfer! Lass mich dir kurz zeigen, wie Shoply funktioniert.',
           nextStep: TutorialStepId.openShoppingList,
-          buttonText: "Los geht's",
+          buttonText: "Los geht's!",
         );
         
       case TutorialStepId.openShoppingList:
@@ -150,8 +150,8 @@ class DynamicTutorialService extends ChangeNotifier {
           id: stepId,
           type: TutorialStepType.click,
           message: _hasLists 
-              ? 'Das sind deine Shopping Lists. Oeffne eine davon!'
-              : 'Ich habe eine Shopping List fuer dich erstellt. Oeffne sie!',
+              ? 'Hier sind deine Einkaufslisten. Tippe auf eine, um sie zu öffnen!'
+              : 'Hier ist deine erste Einkaufsliste. Tippe drauf!',
           targetKey: firstListCardKey,
           nextStep: TutorialStepId.showListItems,
         );
@@ -161,28 +161,28 @@ class DynamicTutorialService extends ChangeNotifier {
           id: stepId,
           type: TutorialStepType.info,
           message: _listHasItems
-              ? 'Das sind deine List Items. Hier siehst du alle Artikel auf deiner Liste.'
-              : 'Hier werden deine List Items angezeigt.',
+              ? 'Super! Hier siehst du deine Artikel. Tippe zum Abhaken!'
+              : 'Hier erscheinen deine Artikel – nach Kategorie sortiert.',
           targetKey: listItemsAreaKey,
           nextStep: TutorialStepId.showInputField,
-          buttonText: 'Weiter',
+          buttonText: 'Verstanden',
         );
         
       case TutorialStepId.showInputField:
         return TutorialStep(
           id: stepId,
           type: TutorialStepType.info,
-          message: 'Mit diesem Feld kannst du neue Items zu deiner Liste hinzufuegen.',
+          message: 'Hier fügst du neue Artikel hinzu. Ich sortiere sie automatisch in Kategorien! 🪄',
           targetKey: addItemInputKey,
           nextStep: TutorialStepId.navigateToRecipes,
-          buttonText: 'Weiter',
+          buttonText: 'Cool!',
         );
         
       case TutorialStepId.navigateToRecipes:
         return TutorialStep(
           id: stepId,
           type: TutorialStepType.click,
-          message: 'Jetzt schauen wir uns die Rezepte an. Klicke auf das Rezepte-Icon!',
+          message: 'Jetzt zeig ich dir die Rezepte! Tippe auf das Symbol unten.',
           targetKey: recipesTabKey,
           nextStep: TutorialStepId.showRecipes,
         );
@@ -192,8 +192,8 @@ class DynamicTutorialService extends ChangeNotifier {
           id: stepId,
           type: TutorialStepType.info,
           message: _hasRecipes
-              ? 'Das sind deine Rezepte. Hier findest du alle gespeicherten Rezepte.'
-              : 'Hier werden deine Rezepte angezeigt.',
+              ? 'Hier findest du Rezepte! Die Zutaten kannst du direkt zur Liste hinzufügen.'
+              : 'Hier findest du Rezepte von der Community. Probier mal eins aus!',
           targetKey: recipesAreaKey,
           nextStep: TutorialStepId.showCreateRecipe,
           buttonText: 'Weiter',
@@ -203,18 +203,18 @@ class DynamicTutorialService extends ChangeNotifier {
         return TutorialStep(
           id: stepId,
           type: TutorialStepType.info,
-          message: 'Mit diesem Button kannst du eigene Rezepte erstellen.',
+          message: 'Hier kannst du eigene Rezepte erstellen und teilen!',
           targetKey: addRecipeButtonKey,
           nextStep: TutorialStepId.tutorialComplete,
-          buttonText: 'Fertig',
+          buttonText: 'Alles klar!',
         );
         
       case TutorialStepId.tutorialComplete:
         return TutorialStep(
           id: stepId,
           type: TutorialStepType.finish,
-          message: 'Super! Du kennst jetzt die wichtigsten Funktionen. Viel Spass!',
-          buttonText: 'Starten',
+          message: 'Du bist startklar! Viel Spaß beim Einkaufen. Bei Fragen findest du mich in den Einstellungen. 🥑',
+          buttonText: 'Loslegen!',
         );
     }
   }
@@ -308,7 +308,7 @@ class DynamicTutorialService extends ChangeNotifier {
           .update({'tutorial_completed': true})
           .eq('id', user.id);
     } catch (e) {
-      debugPrint('Error saving tutorial status: \$e');
+      debugPrint('Error saving tutorial status: $e');
     }
   }
   
@@ -322,7 +322,7 @@ class DynamicTutorialService extends ChangeNotifier {
           .update({'tutorial_completed': false})
           .eq('id', user.id);
     } catch (e) {
-      debugPrint('Error resetting tutorial status: \$e');
+      debugPrint('Error resetting tutorial status: $e');
     }
     
     _isInitialized = false;

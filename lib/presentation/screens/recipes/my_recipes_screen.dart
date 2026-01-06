@@ -89,6 +89,7 @@ class MyRecipesScreen extends ConsumerWidget {
                     return _MyRecipeCard(
                       recipe: recipe,
                       onTap: () => context.push('/recipes/${recipe.id}'),
+                      onEdit: () => context.push('/recipes/add', extra: {'recipeId': recipe.id}),
                     );
                   },
                 ),
@@ -148,10 +149,12 @@ class MyRecipesScreen extends ConsumerWidget {
 class _MyRecipeCard extends StatelessWidget {
   final Recipe recipe;
   final VoidCallback onTap;
+  final VoidCallback onEdit;
 
   const _MyRecipeCard({
     required this.recipe,
     required this.onTap,
+    required this.onEdit,
   });
 
   @override
@@ -248,6 +251,23 @@ class _MyRecipeCard extends StatelessWidget {
                       ],
                     ),
                   ],
+                ),
+              ),
+            ),
+            // Edit button
+            GestureDetector(
+              onTap: onEdit,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.edit_rounded,
+                  color: AppColors.accent,
+                  size: 20,
                 ),
               ),
             ),

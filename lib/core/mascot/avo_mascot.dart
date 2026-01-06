@@ -1,39 +1,54 @@
 import 'package:flutter/material.dart';
 
 /// Expression states for the Avo mascot.
-/// Maps to the image files in assets/avo/
+/// Maps to the PNG image files in assets/avo/
 enum AvoExpression {
-  /// Default/neutral state - uses happy image
+  /// Default/neutral state - uses waving Avo (friendly default)
   neutral,
   
-  /// Happy state - smiling
+  /// Happy state - uses excited Avo
   happy,
   
-  /// Confused state - uses shocked image
+  /// Confused state - uses thinking Avo
   confused,
   
-  /// Success state - uses excited/greeting image
+  /// Success state - uses celebrating Avo
   success,
   
-  /// Waving/greeting state
+  /// Waving/greeting state - uses waving Avo (for login/welcome)
   waving,
   
-  /// Thinking state - uses happy image
+  /// Thinking state - uses thinking Avo
   thinking,
   
-  /// Excited state - waving with big smile
+  /// Excited state - uses excited Avo
   excited,
   
-  /// Shocked/surprised state
-  shocked,
+  /// Celebrating state - uses celebrating Avo (thumbs up)
+  celebrating,
 }
 
 /// The name of our mascot
 const String avoName = 'Avo';
 
+/// PNG image paths for each expression
+const Map<AvoExpression, String> _avoImages = {
+  AvoExpression.neutral: 'assets/avo/avo_waving.png',
+  AvoExpression.happy: 'assets/avo/avo_excited.png',
+  AvoExpression.confused: 'assets/avo/avo_thinking.png',
+  AvoExpression.success: 'assets/avo/avo_celebrating.png',
+  AvoExpression.waving: 'assets/avo/avo_waving.png',
+  AvoExpression.thinking: 'assets/avo/avo_thinking.png',
+  AvoExpression.excited: 'assets/avo/avo_excited.png',
+  AvoExpression.celebrating: 'assets/avo/avo_celebrating.png',
+};
+
+/// Fallback image path
+const String _avoFallback = 'assets/avo/avo_waving.png';
+
 /// Image-based avocado mascot widget.
-/// Uses WebP images for fast loading and crisp rendering.
-class AvoMascot extends StatefulWidget {
+/// Uses different PNG images based on expression for more personality!
+class AvoMascot extends StatelessWidget {
   final double size;
   final AvoExpression expression;
   final bool animate;
@@ -48,79 +63,37 @@ class AvoMascot extends StatefulWidget {
     this.message,
     this.onTap,
   });
-
-  @override
-  State<AvoMascot> createState() => _AvoMascotState();
-}
-
-class _AvoMascotState extends State<AvoMascot> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-    
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-    
-    if (widget.animate) {
-      _controller.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  String _getImagePath() {
-    switch (widget.expression) {
-      case AvoExpression.neutral:
-      case AvoExpression.thinking:
-        return 'assets/avo/avo_happy.webp';
-      case AvoExpression.happy:
-        return 'assets/avo/avo_happy.webp';
-      case AvoExpression.confused:
-      case AvoExpression.shocked:
-        return 'assets/avo/avo_shocked.webp';
-      case AvoExpression.success:
-      case AvoExpression.waving:
-        return 'assets/avo/avo_greeting.webp';
-      case AvoExpression.excited:
-        return 'assets/avo/avo_excited.webp';
-    }
-  }
+  
+  /// Get the image path for the current expression
+  String get _imagePath => _avoImages[expression] ?? _avoFallback;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (widget.message != null) ...[
+          if (message != null) ...[
             _buildSpeechBubble(context),
             const SizedBox(height: 8),
           ],
-          AnimatedBuilder(
-            animation: _scaleAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: widget.animate ? _scaleAnimation.value : 1.0,
-                child: Image.asset(
-                  _getImagePath(),
-                  width: widget.size,
-                  height: widget.size,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.medium,
-                ),
+          // Use PNG image based on expression
+          Image.asset(
+            _imagePath,
+            width: size,
+            height: size,
+            fit: BoxFit.contain,
+            // Use gaplessPlayback to prevent flickering when rebuilding
+            gaplessPlayback: true,
+            // Error handling - fallback to waving image
+            errorBuilder: (context, error, stackTrace) {
+              debugPrint('⚠️ [AVO] Image not found: $_imagePath, using fallback');
+              return Image.asset(
+                _avoFallback,
+                width: size,
+                height: size,
+                fit: BoxFit.contain,
               );
             },
           ),
@@ -132,7 +105,7 @@ class _AvoMascotState extends State<AvoMascot> with SingleTickerProviderStateMix
   Widget _buildSpeechBubble(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      constraints: BoxConstraints(maxWidth: widget.size * 2.5),
+      constraints: BoxConstraints(maxWidth: size * 2.5),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2C2C2E) : Colors.white,
@@ -143,7 +116,7 @@ class _AvoMascotState extends State<AvoMascot> with SingleTickerProviderStateMix
         ),
       ),
       child: Text(
-        widget.message!,
+        message!,
         style: TextStyle(
           fontSize: 14,
           color: isDark ? Colors.white : const Color(0xFF1C1C1E),

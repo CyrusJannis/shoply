@@ -307,12 +307,13 @@ class RecipeFeaturesService {
   // =============================================
 
   /// Get today's featured recipe
-  /// Uses the recipe_of_the_day table if available, otherwise picks highest-rated recipe
+  /// Uses the recipe_of_the_day table if available, otherwise picks from top-rated recipes
+  /// Algorithm: Randomly selects from top 1% of recipes (by rating), changes daily
   Future<Recipe?> getRecipeOfTheDay() async {
     try {
       final today = DateTime.now().toIso8601String().split('T')[0];
       
-      // First try to get from recipe_of_the_day table
+      // First try to get from recipe_of_the_day table (manual selection)
       final response = await _supabase
           .from('recipe_of_the_day')
           .select()
@@ -330,31 +331,59 @@ class RecipeFeaturesService {
         }
       }
       
-      // Fallback: Get a deterministic recipe based on day of year
-      // This ensures the same recipe shows all day but changes daily
-      return await _getDeterministicRecipeOfDay();
+      // Fallback: Get a random recipe from top-rated recipes
+      // This ensures high quality while providing variety
+      return await _getTopRatedRecipeOfDay();
     } catch (e) {
       print('⚠️ [FEATURES] Error fetching recipe of day: $e');
-      return await _getDeterministicRecipeOfDay();
+      return await _getTopRatedRecipeOfDay();
     }
   }
   
-  /// Get a deterministic "recipe of the day" based on day of year
-  /// Picks from top-rated recipes to ensure quality
-  Future<Recipe?> _getDeterministicRecipeOfDay() async {
+  /// Get a "recipe of the day" from top-rated recipes
+  /// Uses a seeded random based on the date for consistency throughout the day
+  /// Selects from top 1% of recipes (minimum 5, maximum 50) by rating
+  Future<Recipe?> _getTopRatedRecipeOfDay() async {
     try {
-      // Get popular recipes (already sorted by rating count and avg rating)
-      final popularRecipes = await RecipeService.instance.getPopularRecipes(limit: 30);
+      // Get ALL recipes sorted by rating (average_rating * rating_count for weighted score)
+      // This gives us the true top-rated recipes
+      final allRecipesResponse = await _supabase
+          .from('recipes')
+          .select('id, average_rating, rating_count')
+          .order('average_rating', ascending: false)
+          .order('rating_count', ascending: false);
       
-      if (popularRecipes.isEmpty) return null;
+      final allRecipes = allRecipesResponse as List;
+      if (allRecipes.isEmpty) return null;
       
-      // Use day of year to pick a deterministic recipe
-      final dayOfYear = DateTime.now().difference(DateTime(DateTime.now().year, 1, 1)).inDays;
-      final index = dayOfYear % popularRecipes.length;
+      // Calculate top 1% (minimum 5, maximum 50)
+      final topCount = (allRecipes.length * 0.01).ceil().clamp(5, 50);
       
-      return popularRecipes[index];
+      // Get the IDs of top-rated recipes
+      final topRecipeIds = allRecipes
+          .take(topCount)
+          .map((r) => r['id'] as String)
+          .toList();
+      
+      if (topRecipeIds.isEmpty) return null;
+      
+      // Use day of year + year as seed for deterministic daily selection
+      // This ensures the same recipe shows all day but changes each day
+      final now = DateTime.now();
+      final dayOfYear = now.difference(DateTime(now.year, 1, 1)).inDays;
+      final seed = now.year * 1000 + dayOfYear; // Unique seed per day
+      
+      // Use modulo with prime number multiplication for better distribution
+      final index = (seed * 31337) % topRecipeIds.length;
+      final selectedId = topRecipeIds[index];
+      
+      print('🌟 [FEATURES] Recipe of the Day: selected recipe $selectedId from top $topCount recipes (seed: $seed, index: $index)');
+      
+      // Get full recipe data
+      final recipe = await RecipeService.instance.getRecipeById(selectedId);
+      return recipe;
     } catch (e) {
-      print('⚠️ [FEATURES] Error getting deterministic recipe of day: $e');
+      print('⚠️ [FEATURES] Error getting top-rated recipe of day: $e');
       return null;
     }
   }

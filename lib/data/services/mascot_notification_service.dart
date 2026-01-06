@@ -292,8 +292,8 @@ class MascotNotificationService {
           title = '🥑 $avoName grübelt...';
         case AvoExpression.excited:
           title = '🥑 $avoName ist begeistert!';
-        case AvoExpression.shocked:
-          title = '🥑 $avoName ist überrascht!';
+        case AvoExpression.celebrating:
+          title = '🥑 $avoName feiert!';
       }
     } else {
       switch (expression) {
@@ -311,8 +311,8 @@ class MascotNotificationService {
           title = '🥑 $avoName is pondering...';
         case AvoExpression.excited:
           title = '🥑 $avoName is excited!';
-        case AvoExpression.shocked:
-          title = '🥑 $avoName is surprised!';
+        case AvoExpression.celebrating:
+          title = '🥑 $avoName is celebrating!';
       }
     }
 
