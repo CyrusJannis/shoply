@@ -14,6 +14,8 @@ PODS:
   - connectivity_plus (0.0.1):
     - FlutterMacOS
     - ReachabilitySwift
+  - file_picker (0.0.1):
+    - FlutterMacOS
   - file_selector_macos (0.0.1):
     - FlutterMacOS
   - Firebase/CoreOnly (12.4.0):
@@ -152,15 +154,19 @@ PODS:
   - in_app_purchase_storekit (0.0.1):
     - Flutter
     - FlutterMacOS
+  - in_app_review (2.0.0):
+    - FlutterMacOS
   - nanopb (3.30910.0):
     - nanopb/decode (= 3.30910.0)
     - nanopb/encode (= 3.30910.0)
   - nanopb/decode (3.30910.0)
   - nanopb/encode (3.30910.0)
+  - package_info_plus (0.0.1):
+    - FlutterMacOS
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - pdf_render (0.0.1):
+  - pdfx (1.0.0):
     - FlutterMacOS
   - PromisesObjC (2.4.0)
   - ReachabilitySwift (5.2.4)
@@ -176,10 +182,13 @@ PODS:
     - FlutterMacOS
   - url_launcher_macos (0.0.1):
     - FlutterMacOS
+  - wakelock_plus (0.0.1):
+    - FlutterMacOS
 
 DEPENDENCIES:
   - app_links (from `Flutter/ephemeral/.symlinks/plugins/app_links/macos`)
   - connectivity_plus (from `Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos`)
+  - file_picker (from `Flutter/ephemeral/.symlinks/plugins/file_picker/macos`)
   - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
   - firebase_analytics (from `Flutter/ephemeral/.symlinks/plugins/firebase_analytics/macos`)
   - firebase_core (from `Flutter/ephemeral/.symlinks/plugins/firebase_core/macos`)
@@ -190,13 +199,16 @@ DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
   - google_sign_in_ios (from `Flutter/ephemeral/.symlinks/plugins/google_sign_in_ios/darwin`)
   - in_app_purchase_storekit (from `Flutter/ephemeral/.symlinks/plugins/in_app_purchase_storekit/darwin`)
+  - in_app_review (from `Flutter/ephemeral/.symlinks/plugins/in_app_review/macos`)
+  - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
   - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
-  - pdf_render (from `Flutter/ephemeral/.symlinks/plugins/pdf_render/macos`)
+  - pdfx (from `Flutter/ephemeral/.symlinks/plugins/pdfx/macos`)
   - share_plus (from `Flutter/ephemeral/.symlinks/plugins/share_plus/macos`)
   - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
   - sign_in_with_apple (from `Flutter/ephemeral/.symlinks/plugins/sign_in_with_apple/macos`)
   - sqflite_darwin (from `Flutter/ephemeral/.symlinks/plugins/sqflite_darwin/darwin`)
   - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
+  - wakelock_plus (from `Flutter/ephemeral/.symlinks/plugins/wakelock_plus/macos`)
 
 SPEC REPOS:
   trunk:
@@ -223,6 +235,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/app_links/macos
   connectivity_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos
+  file_picker:
+    :path: Flutter/ephemeral/.symlinks/plugins/file_picker/macos
   file_selector_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos
   firebase_analytics:
@@ -243,10 +257,14 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/google_sign_in_ios/darwin
   in_app_purchase_storekit:
     :path: Flutter/ephemeral/.symlinks/plugins/in_app_purchase_storekit/darwin
+  in_app_review:
+    :path: Flutter/ephemeral/.symlinks/plugins/in_app_review/macos
+  package_info_plus:
+    :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos
   path_provider_foundation:
     :path: Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin
-  pdf_render:
-    :path: Flutter/ephemeral/.symlinks/plugins/pdf_render/macos
+  pdfx:
+    :path: Flutter/ephemeral/.symlinks/plugins/pdfx/macos
   share_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/share_plus/macos
   shared_preferences_foundation:
@@ -257,12 +275,15 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/sqflite_darwin/darwin
   url_launcher_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
+  wakelock_plus:
+    :path: Flutter/ephemeral/.symlinks/plugins/wakelock_plus/macos
 
 SPEC CHECKSUMS:
   app_links: c3185399a5cabc2e610ee5ad52fb7269b84ff869
   AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
   AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
   connectivity_plus: 18d3c32514c886e046de60e9c13895109866c747
+  file_picker: e716a70a9fe5fd9e09ebc922d7541464289443af
   file_selector_macos: 3e56eaea051180007b900eacb006686fd54da150
   Firebase: f07b15ae5a6ec0f93713e30b923d9970d144af3e
   firebase_analytics: 1efb0c49e940d898df44299438e189f27050ac21
@@ -274,7 +295,7 @@ SPEC CHECKSUMS:
   FirebaseInstallations: ae9f4902cb5bf1d0c5eaa31ec1f4e5495a0714e2
   FirebaseMessaging: d33971b7bb252745ea6cd31ab190d1a1df4b8ed5
   flutter_app_badger: 55a64b179f8438e89d574320c77b306e327a1730
-  flutter_local_notifications: 3805ca215b2fb7f397d78b66db91f6a747af52e4
+  flutter_local_notifications: 4ccab5b7a22835214a6672e3f9c5e8ae207dab36
   flutter_secure_storage_macos: c2754d3483d20bb207bb9e5a14f1b8e771abcdb9
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   google_sign_in_ios: 7411fab6948df90490dc4620ecbcabdc3ca04017
@@ -285,9 +306,11 @@ SPEC CHECKSUMS:
   GTMAppAuth: f69bd07d68cd3b766125f7e072c45d7340dea0de
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   in_app_purchase_storekit: 2342c0a5da86593124d08dd13d920f39a52b273a
+  in_app_review: 866c9b17c87a7b46a395bda43f5d3ca02deb585a
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
+  package_info_plus: 12f1c5c2cfe8727ca46cbd0b26677728972d9a5b
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
-  pdf_render: c2c4dfbd5cdb621c4f734018e52ab4546f08f3a1
+  pdfx: d1c406047b02acc54fe98495ae24b04fe9b4f024
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   ReachabilitySwift: 32793e867593cfc1177f5d16491e3a197d2fccda
   share_plus: 76dd39142738f7a68dd57b05093b5e8193f220f7
@@ -295,6 +318,7 @@ SPEC CHECKSUMS:
   sign_in_with_apple: a9e97e744e8edc36aefc2723111f652102a7a727
   sqflite_darwin: 5a7236e3b501866c1c9befc6771dfd73ffb8702d
   url_launcher_macos: c82c93949963e55b228a30115bd219499a6fe404
+  wakelock_plus: 9d63063ffb7af1c215209769067c57103bde719d
 
 PODFILE CHECKSUM: 497ca1db772812d37ec91192e4b1defefd6c2bab
 

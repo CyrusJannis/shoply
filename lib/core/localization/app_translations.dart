@@ -194,8 +194,10 @@ class AppTranslations {
     'shop_more_for_recommendations': 'Shop more to get personalized recommendations',
     
     // UI Elements
+    'add_all': 'Add All',
     'add_button': 'Add',
     'add_category': 'Add Category',
+    'added': 'added',
     'add_photo': 'Add Photo',
     'add_to_which_list': 'Add to which list?',
     'added_by': 'Added by',
@@ -354,6 +356,7 @@ class AppTranslations {
     'no_recipes_found': 'No recipes found',
     'no_recipes_in_category': 'No recipes in this category',
     'no_restrictions': 'No restrictions',
+    'no_items': 'No items',
     'no_results': 'No results',
     'no_saved_recipes': 'No saved recipes',
     'no_shopping_history': 'No shopping history',
@@ -648,8 +651,10 @@ class AppTranslations {
     'shop_more_for_recommendations': 'Kaufe mehr ein, um personalisierte Empfehlungen zu erhalten',
     
     // UI Elements
+    'add_all': 'Alle hinzufügen',
     'add_button': 'Hinzufügen',
     'add_category': 'Kategorie hinzufügen',
+    'added': 'hinzugefügt',
     'add_photo': 'Foto hinzufügen',
     'add_to_which_list': 'Zu welcher Liste hinzufügen?',
     'added_by': 'Hinzugefügt von',
@@ -808,6 +813,7 @@ class AppTranslations {
     'no_recipes_found': 'Keine Rezepte gefunden',
     'no_recipes_in_category': 'Keine Rezepte in dieser Kategorie',
     'no_restrictions': 'Keine Einschränkungen',
+    'no_items': 'Keine Artikel',
     'no_results': 'Keine Ergebnisse',
     'no_saved_recipes': 'Keine gespeicherten Rezepte',
     'no_shopping_history': 'Kein Einkaufsverlauf',

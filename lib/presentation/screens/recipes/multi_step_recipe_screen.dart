@@ -54,13 +54,14 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
   final List<TextEditingController> _instructionControllers = [TextEditingController()];
 
   String _languageCode = 'de';
+  bool _isDark = false;
   
-  // Colors
-  static const Color _bgColor = Color(0xFFF5F5F5);
-  static const Color _cardColor = Colors.white;
-  static const Color _textPrimary = Color(0xFF1A1A2E);
-  static const Color _textSecondary = Color(0xFF8E8E93);
-  static const Color _borderColor = Color(0xFFE5E5EA);
+  // Colors based on theme (following cooking_mode_screen pattern)
+  Color get _bgColor => _isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF5F5F5);
+  Color get _cardColor => _isDark ? const Color(0xFF1A1A1A) : Colors.white;
+  Color get _textPrimary => _isDark ? Colors.white : const Color(0xFF1A1A2E);
+  Color get _textSecondary => _isDark ? const Color(0xFFA0A0A0) : const Color(0xFF8E8E93);
+  Color get _borderColor => _isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE5E5EA);
   static const Color _accentBlue = Color(0xFF007AFF);
   static const Color _accentGreen = Color(0xFF34C759);
   static const Color _accentOrange = Color(0xFFFF9500);
@@ -270,11 +271,12 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
   @override
   Widget build(BuildContext context) {
     _languageCode = Localizations.localeOf(context).languageCode;
+    _isDark = Theme.of(context).brightness == Brightness.dark;
     
     if (_isLoadingData) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: _bgColor,
-        body: Center(child: CircularProgressIndicator()),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
     
@@ -347,7 +349,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.close, color: _textPrimary, size: 22),
+              child: Icon(Icons.close, color: _textPrimary, size: 22),
             ),
           ),
           const SizedBox(width: 16),
@@ -359,12 +361,12 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                 Text(
                   _editingRecipeId != null ? _tr('edit_recipe') : 'Neues Rezept',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: _textPrimary),
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: _textPrimary),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   stepTitles[_currentStep],
-                  style: const TextStyle(fontSize: 13, color: _textSecondary),
+                  style: TextStyle(fontSize: 13, color: _textSecondary),
                 ),
               ],
             ),
@@ -389,7 +391,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                 ),
                 Text(
                   '${_currentStep + 1}/$_totalSteps',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _textPrimary),
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _textPrimary),
                 ),
               ],
             ),
@@ -418,12 +420,12 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
           const SizedBox(height: 16),
           
           // Title
-          const Text(
+          Text(
             'Foto hinzufügen',
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _textPrimary),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Ein tolles Foto macht dein Rezept besonders',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 16, color: _textSecondary),
@@ -460,7 +462,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                           child: const Icon(Icons.add_photo_alternate, size: 28, color: _accentBlue),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
+                        Text(
                           'Tippen um Foto hinzuzufügen',
                           style: TextStyle(fontSize: 15, color: _textSecondary),
                         ),
@@ -482,20 +484,20 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Rezeptname',
                   style: TextStyle(fontSize: 13, color: _textSecondary),
                 ),
                 TextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'z.B. Omas Apfelkuchen',
                     border: InputBorder.none,
                     isDense: true,
-                    contentPadding: EdgeInsets.only(top: 8),
+                    contentPadding: const EdgeInsets.only(top: 8),
                     hintStyle: TextStyle(color: _textSecondary, fontSize: 17),
                   ),
-                  style: const TextStyle(fontSize: 17, color: _textPrimary),
+                  style: TextStyle(fontSize: 17, color: _textPrimary),
                   onChanged: (_) => setState(() {}),
                 ),
               ],
@@ -525,12 +527,12 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
           const SizedBox(height: 16),
           
           // Title
-          const Text(
+          Text(
             'Kochzeiten',
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _textPrimary),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Wie lange dauert die Zubereitung?',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 16, color: _textSecondary),
@@ -556,7 +558,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                   controller: _prepTimeController,
                   suffix: 'Min',
                 ),
-                const Divider(height: 16, color: _borderColor),
+                Divider(height: 16, color: _borderColor),
                 // Cook time
                 _buildTimeRow(
                   icon: Icons.local_fire_department,
@@ -566,7 +568,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                   controller: _cookTimeController,
                   suffix: 'Min',
                 ),
-                const Divider(height: 16, color: _borderColor),
+                Divider(height: 16, color: _borderColor),
                 // Servings
                 _buildTimeRow(
                   icon: Icons.people,
@@ -608,7 +610,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 13, color: _textSecondary)),
+              Text(label, style: TextStyle(fontSize: 13, color: _textSecondary)),
               Row(
                 children: [
                   SizedBox(
@@ -616,18 +618,18 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                     child: TextField(
                       controller: controller,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: '0',
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                         hintStyle: TextStyle(color: _textSecondary, fontSize: 20, fontWeight: FontWeight.w600),
                       ),
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: _textPrimary),
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: _textPrimary),
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
-                  Text(suffix, style: const TextStyle(fontSize: 15, color: _textSecondary)),
+                  Text(suffix, style: TextStyle(fontSize: 15, color: _textSecondary)),
                 ],
               ),
             ],
@@ -658,10 +660,10 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
           // Title
           Text(
             _tr('ingredients'),
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _textPrimary),
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _textPrimary),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Was brauchst du für dieses Rezept?',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 16, color: _textSecondary),
@@ -695,9 +697,9 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                                 hintText: _tr('ingredient'),
                                 border: InputBorder.none,
                                 isDense: true,
-                                hintStyle: const TextStyle(color: _textSecondary),
+                                hintStyle: TextStyle(color: _textSecondary),
                               ),
-                              style: const TextStyle(fontSize: 16, color: _textPrimary),
+                              style: TextStyle(fontSize: 16, color: _textPrimary),
                               onChanged: (_) => setState(() {}),
                             ),
                           ),
@@ -707,13 +709,13 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                               controller: ingredient.amountController,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 hintText: '0',
                                 border: InputBorder.none,
                                 isDense: true,
                                 hintStyle: TextStyle(color: _textSecondary),
                               ),
-                              style: const TextStyle(fontSize: 16, color: _textPrimary),
+                              style: TextStyle(fontSize: 16, color: _textPrimary),
                               onChanged: (_) => setState(() {}),
                             ),
                           ),
@@ -725,9 +727,9 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                                 hintText: _tr('unit'),
                                 border: InputBorder.none,
                                 isDense: true,
-                                hintStyle: const TextStyle(color: _textSecondary),
+                                hintStyle: TextStyle(color: _textSecondary),
                               ),
-                              style: const TextStyle(fontSize: 16, color: _textPrimary),
+                              style: TextStyle(fontSize: 16, color: _textPrimary),
                               onChanged: (_) => setState(() {}),
                             ),
                           ),
@@ -740,12 +742,12 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                                   _ingredients.removeAt(index);
                                 });
                               },
-                              child: const Icon(Icons.close, color: _textSecondary, size: 20),
+                              child: Icon(Icons.close, color: _textSecondary, size: 20),
                             ),
                         ],
                       ),
                       if (index < _ingredients.length - 1)
-                        const Divider(height: 12, color: _borderColor),
+                        Divider(height: 12, color: _borderColor),
                     ],
                   );
                 }),
@@ -802,10 +804,10 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
           // Title
           Text(
             _tr('instructions'),
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _textPrimary),
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _textPrimary),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Beschreibe die Kochschritte',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 16, color: _textSecondary),
@@ -835,7 +837,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                           Container(
                             width: 32,
                             height: 32,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: _accentBlue,
                               shape: BoxShape.circle,
                             ),
@@ -851,13 +853,13 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                             child: TextField(
                               controller: controller,
                               maxLines: 2,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 hintText: 'Beschreibe diesen Schritt...',
                                 border: InputBorder.none,
                                 isDense: true,
                                 hintStyle: TextStyle(color: _textSecondary),
                               ),
-                              style: const TextStyle(fontSize: 16, color: _textPrimary, height: 1.4),
+                              style: TextStyle(fontSize: 16, color: _textPrimary, height: 1.4),
                               onChanged: (_) => setState(() {}),
                             ),
                           ),
@@ -870,15 +872,15 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                                   _instructionControllers.removeAt(index);
                                 });
                               },
-                              child: const Padding(
-                                padding: EdgeInsets.only(top: 4),
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 4),
                                 child: Icon(Icons.close, color: _textSecondary, size: 20),
                               ),
                             ),
                         ],
                       ),
                       if (index < _instructionControllers.length - 1)
-                        const Divider(height: 16, color: _borderColor),
+                        Divider(height: 16, color: _borderColor),
                     ],
                   );
                 }),
@@ -1012,8 +1014,8 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: _cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(_tr('save_draft_question'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _textPrimary)),
-        content: Text(_tr('save_draft_question_desc'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, color: _textSecondary)),
+        title: Text(_tr('save_draft_question'), textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _textPrimary)),
+        content: Text(_tr('save_draft_question_desc'), textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: _textSecondary)),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
           TextButton(
