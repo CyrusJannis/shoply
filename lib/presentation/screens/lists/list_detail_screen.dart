@@ -1732,6 +1732,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
       // Save only checked items to history
       final historyService = ShoppingHistoryService();
       await historyService.completeShoppingTrip(
+        listId: widget.listId,
         listName: widget.listName,
         items: checkedItems,
       );

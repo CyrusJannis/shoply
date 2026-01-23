@@ -596,8 +596,12 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
+    // Modern color palette
+    final bgColor = isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF8F9FA);
+    final textSecondary = isDark ? const Color(0xFF8E8E93) : const Color(0xFF6B7280);
+    
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : Colors.grey[100],
+      backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -641,32 +645,32 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
               children: [
                 // Info text
                 Container(
-                  margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.grey[850] : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                      ),
-                    ],
+                    color: isDark 
+                        ? AppColors.accentColor(context).withValues(alpha: 0.08)
+                        : AppColors.accentColor(context).withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.accentColor(context).withValues(alpha: 0.15),
+                    ),
                   ),
                   child: Row(
                     children: [
                       Icon(
-                        Icons.info_outline,
-                        color: Colors.grey[500],
-                        size: 20,
+                        Icons.lightbulb_outline_rounded,
+                        color: AppColors.accentColor(context),
+                        size: 18,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           context.tr('drag_to_reorder'),
                           style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
+                            color: isDark ? Colors.white70 : textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -719,61 +723,116 @@ class _CategoryOrderScreenState extends State<CategoryOrderScreen> {
   }
 
   Widget _buildCategoryTile(_CategoryItem category, bool isDark) {
+    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1F2937);
+    final textSecondary = isDark ? const Color(0xFF8E8E93) : const Color(0xFF6B7280);
+    final dragHandleColor = isDark ? const Color(0xFF48484A) : const Color(0xFFD1D5DB);
+    
     return Container(
       key: ValueKey(category.id),
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        color: cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFE5E7EB),
+          width: 0.5,
+        ),
+        boxShadow: isDark ? null : [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: category.color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            category.isCustom ? Icons.label : _getCategoryIcon(category.id),
-            color: category.color,
-            size: 24,
-          ),
-        ),
-        title: Text(
-          category.isCustom 
-              ? category.name 
-              : Categories.getById(category.id).getName(Localizations.localeOf(context).languageCode),
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-        subtitle: category.isCustom 
-            ? Text(
-                context.tr('custom_category'),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: category.color,
-                ),
-              )
-            : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
           children: [
-            if (category.isCustom)
-              IconButton(
-                icon: Icon(Icons.edit_outlined, color: Colors.grey[500], size: 20),
-                onPressed: () => _showEditCategoryDialog(category),
+            // Category icon with color
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    category.color.withValues(alpha: isDark ? 0.25 : 0.15),
+                    category.color.withValues(alpha: isDark ? 0.15 : 0.08),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(
+                  color: category.color.withValues(alpha: 0.2),
+                  width: 0.5,
+                ),
               ),
-            Icon(Icons.drag_handle, color: Colors.grey[400]),
+              child: Icon(
+                category.isCustom ? Icons.label_rounded : _getCategoryIcon(category.id),
+                color: category.color,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            // Category name
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    category.isCustom 
+                        ? category.name 
+                        : Categories.getById(category.id).getName(Localizations.localeOf(context).languageCode),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: textPrimary,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  if (category.isCustom)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        context.tr('custom_category'),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: category.color.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // Edit button for custom categories
+            if (category.isCustom)
+              GestureDetector(
+                onTap: () => _showEditCategoryDialog(category),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isDark 
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.edit_rounded,
+                    color: textSecondary,
+                    size: 18,
+                  ),
+                ),
+              ),
+            const SizedBox(width: 8),
+            // Drag handle
+            Icon(
+              Icons.drag_handle_rounded,
+              color: dragHandleColor,
+              size: 22,
+            ),
           ],
         ),
       ),

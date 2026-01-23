@@ -314,10 +314,21 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
     _isDark = Theme.of(context).brightness == Brightness.dark;
     _languageCode = Localizations.localeOf(context).languageCode;
     
-    // Get bottom padding - iOS 26 liquid glass navbar is very tall
+    // Get bottom padding - handle different iOS versions
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    // iOS 26 has bottomPadding around 54-60, add extra 160px for liquid glass
-    final extraPadding = bottomPadding > 50 ? 160.0 : (bottomPadding > 30 ? 40.0 : 0.0);
+    double extraPadding = 0.0;
+    
+    if (Platform.isIOS) {
+      if (bottomPadding > 50) {
+        // iOS 26 liquid glass navbar - needs extra 160px
+        extraPadding = 160.0;
+      } else if (bottomPadding > 0 && bottomPadding <= 50) {
+        // iOS 18 and earlier with home indicator (around 34px)
+        // Buttons are too high, add 20px extra padding
+        extraPadding = 20.0;
+      }
+    }
+    
     final totalBottomPadding = bottomPadding + extraPadding;
     
     return Scaffold(

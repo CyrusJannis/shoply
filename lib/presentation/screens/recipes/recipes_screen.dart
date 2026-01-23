@@ -171,10 +171,14 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
           }
         }
         
-        // Sort by score and take top 6
+        // Sort by score and take appropriate amount based on total recipes
         final sorted = scoredRecipes.entries.toList()
           ..sort((a, b) => b.value.compareTo(a.value));
-        forYou = sorted.take(6).map((e) => e.key).toList();
+        // For small recipe counts, show max half of recipes (min 1, max 6)
+        final forYouLimit = allRecipes.length <= 6 
+            ? (allRecipes.length / 2).ceil().clamp(1, 3)
+            : 6;
+        forYou = sorted.take(forYouLimit).map((e) => e.key).toList();
       }
       // If no personalized matches, show top rated recipes with good engagement
       if (forYou.isEmpty) {
@@ -185,7 +189,11 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
             final scoreB = b.averageRating * 2 + (b.ratingCount * 0.1) + (b.viewCount * 0.01);
             return scoreB.compareTo(scoreA);
           });
-        forYou = forYou.take(6).toList();
+        // For small recipe counts, show max half of recipes (min 1, max 6)
+        final forYouLimit = allRecipes.length <= 6 
+            ? (allRecipes.length / 2).ceil().clamp(1, 3)
+            : 6;
+        forYou = forYou.take(forYouLimit).toList();
       }
       
       setState(() {

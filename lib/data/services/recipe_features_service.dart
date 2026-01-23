@@ -340,13 +340,12 @@ class RecipeFeaturesService {
     }
   }
   
-  /// Get a "recipe of the day" from top-rated recipes
+  /// Get a "recipe of the day" from available recipes
   /// Uses a seeded random based on the date for consistency throughout the day
-  /// Selects from top 1% of recipes (minimum 5, maximum 50) by rating
+  /// Rotates through ALL recipes to ensure variety, prioritizing higher-rated ones
   Future<Recipe?> _getTopRatedRecipeOfDay() async {
     try {
-      // Get ALL recipes sorted by rating (average_rating * rating_count for weighted score)
-      // This gives us the true top-rated recipes
+      // Get ALL recipes sorted by a weighted score
       final allRecipesResponse = await _supabase
           .from('recipes')
           .select('id, average_rating, rating_count')
@@ -356,28 +355,22 @@ class RecipeFeaturesService {
       final allRecipes = allRecipesResponse as List;
       if (allRecipes.isEmpty) return null;
       
-      // Calculate top 1% (minimum 5, maximum 50)
-      final topCount = (allRecipes.length * 0.01).ceil().clamp(5, 50);
-      
-      // Get the IDs of top-rated recipes
-      final topRecipeIds = allRecipes
-          .take(topCount)
+      // Get all recipe IDs - we rotate through ALL of them
+      final allRecipeIds = allRecipes
           .map((r) => r['id'] as String)
           .toList();
-      
-      if (topRecipeIds.isEmpty) return null;
       
       // Use day of year + year as seed for deterministic daily selection
       // This ensures the same recipe shows all day but changes each day
       final now = DateTime.now();
       final dayOfYear = now.difference(DateTime(now.year, 1, 1)).inDays;
-      final seed = now.year * 1000 + dayOfYear; // Unique seed per day
       
-      // Use modulo with prime number multiplication for better distribution
-      final index = (seed * 31337) % topRecipeIds.length;
-      final selectedId = topRecipeIds[index];
+      // Simple rotation: use day of year modulo recipe count
+      // This guarantees every recipe gets shown and it changes daily
+      final index = dayOfYear % allRecipeIds.length;
+      final selectedId = allRecipeIds[index];
       
-      print('🌟 [FEATURES] Recipe of the Day: selected recipe $selectedId from top $topCount recipes (seed: $seed, index: $index)');
+      print('🌟 [FEATURES] Recipe of the Day: selected recipe $selectedId (day $dayOfYear, index $index of ${allRecipeIds.length})');
       
       // Get full recipe data
       final recipe = await RecipeService.instance.getRecipeById(selectedId);

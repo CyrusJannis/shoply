@@ -14,6 +14,7 @@ import 'package:shoply/data/services/fcm_service.dart';
 import 'package:shoply/data/services/mascot_notification_service.dart';
 import 'package:shoply/data/services/recipe_service.dart';
 import 'package:shoply/data/services/app_review_service.dart';
+import 'package:shoply/data/services/subscription_service.dart';
 import 'package:shoply/core/services/siri_service.dart';
 import 'package:shoply/core/config/env.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -110,6 +111,11 @@ void main() async {
       
       // Track app open for review prompts
       await AppReviewService.instance.trackAppOpen();
+      
+      // Initialize Subscription Service for in-app purchases
+      debugPrint('🔵 [MAIN] Initializing Subscription Service...');
+      await SubscriptionService.instance.initialize();
+      debugPrint('✅ Subscription Service initialized');
     } else {
       debugPrint('⚠️ [MAIN] Skipping notifications - not iOS/Android');
     }

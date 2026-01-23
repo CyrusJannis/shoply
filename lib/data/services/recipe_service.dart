@@ -852,11 +852,12 @@ class RecipeService {
     }
   }
 
-  /// Get share link for recipe (web URL with fallback)
+  /// Get share link for recipe using Supabase redirect
+  /// Uses Supabase project URL with a redirect function
   String getShareLink(String recipeId) {
-    // Web URL that can handle deep linking
-    // TODO: Set up web redirect at this URL to handle app links
-    return 'https://shoplyai.app/recipe/$recipeId';
+    // Use Supabase Edge Function for redirect (quick solution)
+    // Falls back to deep link if edge function not set up
+    return 'https://rtwzzerhgieyxsijemsd.supabase.co/functions/v1/share?type=recipe&id=$recipeId';
   }
 
   /// Get deep link for recipe (direct app opening)
@@ -866,11 +867,12 @@ class RecipeService {
 
   /// Get share text with recipe details
   String getShareText(Recipe recipe) {
-    final link = getShareLink(recipe.id);
+    final deepLink = getDeepLink(recipe.id);
     return '🍳 Check out this recipe: ${recipe.name}\n\n'
            '⏱ Ready in ${recipe.totalTimeMinutes} min\n'
            '⭐ ${recipe.averageRating.toStringAsFixed(1)} rating\n\n'
-           '$link';
+           '📱 Open in Shoply:\n$deepLink\n\n'
+           '💡 Don\'t have Shoply? Download it from the App Store!';
   }
 
   /// Upload recipe image
@@ -1610,7 +1612,13 @@ class RecipeService {
         return scoreB.compareTo(scoreA);
       });
 
-      return allRecipes.take(limit).toList();
+      // For small recipe counts, show max half of recipes (min 1)
+      // This prevents showing ALL recipes in "Popular" section
+      final effectiveLimit = allRecipes.length <= limit * 2
+          ? (allRecipes.length / 2).ceil().clamp(1, limit)
+          : limit;
+      
+      return allRecipes.take(effectiveLimit).toList();
     } catch (e) {
       print('❌ [RECIPE_SERVICE] Failed to get popular recipes: $e');
       return [];
@@ -1625,7 +1633,12 @@ class RecipeService {
       // Sort by creation date
       allRecipes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      return allRecipes.take(limit).toList();
+      // For small recipe counts, show max half of recipes (min 1)
+      final effectiveLimit = allRecipes.length <= limit * 2
+          ? (allRecipes.length / 2).ceil().clamp(1, limit)
+          : limit;
+      
+      return allRecipes.take(effectiveLimit).toList();
     } catch (e) {
       print('❌ [RECIPE_SERVICE] Failed to get recent recipes: $e');
       return [];

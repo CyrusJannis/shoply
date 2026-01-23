@@ -17,6 +17,8 @@ import 'package:shoply/presentation/screens/recipes/widgets/select_list_bottom_s
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shoply/core/localization/localization_helper.dart';
 import 'package:shoply/presentation/screens/recipes/cooking_mode_screen.dart';
+import 'package:shoply/presentation/providers/subscription_provider.dart';
+import 'package:shoply/presentation/screens/subscription/subscription_screen.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
   final String recipeId;
@@ -445,37 +447,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             ),
           ),
           
-          // Start Cooking Button - at the top for easy access
+          // Start Cooking Button - Premium Feature
           SliverToBoxAdapter(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CookingModeScreen(
-                        recipe: _recipe!,
-                        servings: _servings,
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.restaurant, size: 22),
-                label: Text(
-                  context.tr('start_cooking'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
-                ),
-              ),
+              child: _buildCookingModeButton(context),
             ),
           ),
 
@@ -883,11 +859,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     }
   }
 
-  void _shareRecipe() {
+  void _shareRecipe() async {
     final shareText = _recipeService.getShareText(_recipe!);
-    Share.share(
+    await Share.share(
       shareText,
-      subject: _recipe!.name,
+      subject: '🍳 ${_recipe!.name}',
     );
   }
 
@@ -905,6 +881,88 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         defaultServings: _servings,
         recipeDefaultServings: _recipe!.defaultServings,
         useAdaptedIngredients: _showAdaptedIngredients,
+      ),
+    );
+  }
+
+  Widget _buildCookingModeButton(BuildContext context) {
+    final isSubscribed = ref.watch(isSubscribedProvider);
+    
+    if (isSubscribed) {
+      // Subscribed users get the normal button
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CookingModeScreen(
+                  recipe: _recipe!,
+                  servings: _servings,
+                ),
+              ),
+            );
+          },
+          icon: const Icon(Icons.restaurant_menu_rounded, size: 22),
+          label: Text(
+            context.tr('start_cooking'),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.accent,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            elevation: 0,
+          ),
+        ),
+      );
+    }
+    
+    // Non-subscribed users get a clean premium button
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () => showSubscriptionSheet(context),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.accent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.restaurant_menu_rounded, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              context.tr('start_cooking'),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'PRO',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
