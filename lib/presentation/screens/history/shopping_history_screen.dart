@@ -673,6 +673,132 @@ class _ExpandedItemsContentState extends ConsumerState<_ExpandedItemsContent> {
     });
   }
 
+  /// Build a card for list selection
+  Widget _buildListCard(ShoppingListModel list, bool isSelected) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() {
+          _selectedListId = list.id;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.accentColor(context).withValues(alpha: isDark ? 0.25 : 0.15)
+              : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.accentColor(context).withValues(alpha: 0.5)
+                : (isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08)),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.accentColor(context).withValues(alpha: 0.2)
+                    : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                isSelected ? Icons.check_rounded : Icons.list_alt_rounded,
+                size: 18,
+                color: isSelected ? AppColors.accentColor(context) : AppColors.textSecondary(context),
+              ),
+            ),
+            const SizedBox(width: 10),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 100),
+              child: Text(
+                list.name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? AppColors.accentColor(context) : AppColors.textPrimary(context),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build liquid glass add all button
+  Widget _buildAddAllButton() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return GestureDetector(
+      onTap: _selectedListId == null || _isAddingAll ? null : _addAllItems,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: _selectedListId == null 
+              ? (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03))
+              : AppColors.accentColor(context).withValues(alpha: isDark ? 0.3 : 0.2),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: _selectedListId == null
+                ? (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05))
+                : AppColors.accentColor(context).withValues(alpha: 0.4),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_isAddingAll)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _selectedListId == null 
+                        ? AppColors.textSecondary(context)
+                        : AppColors.accentColor(context),
+                  ),
+                ),
+              )
+            else
+              Icon(
+                Icons.add_shopping_cart_rounded,
+                size: 20,
+                color: _selectedListId == null 
+                    ? AppColors.textSecondary(context)
+                    : AppColors.accentColor(context),
+              ),
+            const SizedBox(width: 10),
+            Text(
+              '${context.tr('add_all')} (${widget.entry.items.length})',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: _selectedListId == null 
+                    ? AppColors.textSecondary(context)
+                    : AppColors.accentColor(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
