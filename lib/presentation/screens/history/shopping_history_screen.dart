@@ -682,96 +682,38 @@ class _ExpandedItemsContentState extends ConsumerState<_ExpandedItemsContent> {
           height: 1,
         ),
         
-        // List selector and add all button
+        // Card-based list selector
         if (widget.lists.isNotEmpty && widget.entry.items.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // List selector dropdown
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface(context),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border(context)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedListId,
-                      isExpanded: true,
-                      icon: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: AppColors.textSecondary(context),
-                      ),
-                      dropdownColor: AppColors.surface(context),
-                      borderRadius: BorderRadius.circular(12),
-                      items: widget.lists.map((list) {
-                        return DropdownMenuItem<String>(
-                          value: list.id,
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.list_rounded,
-                                size: 18,
-                                color: AppColors.accentColor(context),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  list.name,
-                                  style: TextStyle(
-                                    color: AppColors.textPrimary(context),
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 14,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedListId = value;
-                        });
-                      },
-                    ),
+                Text(
+                  context.tr('add_to_list'),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary(context),
                   ),
                 ),
-                const SizedBox(height: 10),
-                // Add all button
+                const SizedBox(height: 8),
+                // Horizontal scrolling list cards
                 SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _selectedListId == null || _isAddingAll
-                        ? null
-                        : _addAllItems,
-                    icon: _isAddingAll
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.add_shopping_cart_rounded, size: 18),
-                    label: Text(
-                      '${context.tr('add_all')} (${widget.entry.items.length})',
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accentColor(context),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
+                  height: 56,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: widget.lists.length,
+                    itemBuilder: (context, index) {
+                      final list = widget.lists[index];
+                      final isSelected = list.id == _selectedListId;
+                      return _buildListCard(list, isSelected);
+                    },
                   ),
                 ),
+                const SizedBox(height: 12),
+                // Add all button with liquid glass style
+                _buildAddAllButton(),
               ],
             ),
           ),
