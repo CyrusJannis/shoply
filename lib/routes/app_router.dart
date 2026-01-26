@@ -149,15 +149,15 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // AI tab temporarily disabled - will be reactivated later
-          // GoRoute(
-          //   path: '/ai',
-          //   name: 'ai',
-          //   pageBuilder: (context, state) => NoTransitionPage(
-          //     key: state.pageKey,
-          //     child: const AIScreen(),
-          //   ),
-          // ),
+          // Avo AI Chat
+          GoRoute(
+            path: '/avo',
+            name: 'avo-chat',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const AvoChatScreen(),
+            ),
+          ),
           GoRoute(
             path: '/recipes',
             name: 'recipes',
