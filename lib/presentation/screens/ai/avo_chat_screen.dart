@@ -11,12 +11,10 @@ import 'package:shoply/data/models/recipe.dart';
 import 'package:shoply/data/models/shopping_list_model.dart';
 import 'package:shoply/data/models/shopping_item_model.dart';
 import 'package:shoply/data/services/avo_assistant_service.dart';
-import 'package:shoply/data/services/gemini_categorization_service.dart';
 import 'package:shoply/data/services/recipe_service.dart';
 import 'package:shoply/presentation/state/lists_provider.dart';
 import 'package:shoply/presentation/state/items_provider.dart';
 import 'package:shoply/presentation/state/shopping_history_provider.dart';
-import 'package:shoply/presentation/state/recipes_provider.dart';
 
 /// Chat message model
 class ChatMessage {
