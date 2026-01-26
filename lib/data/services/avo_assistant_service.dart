@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:shoply/core/config/env.dart';
 import 'package:shoply/data/models/recipe.dart';
 import 'package:shoply/data/models/shopping_list_model.dart';
 import 'package:shoply/data/models/shopping_item_model.dart';
@@ -53,12 +54,12 @@ Current context will be provided about:
 - Shopping history
 ''';
 
-  /// Initialize the Gemini model
-  Future<void> initialize(String apiKey) async {
+  /// Initialize the Gemini model using env key
+  Future<void> initialize() async {
     try {
       _model = GenerativeModel(
         model: 'gemini-2.0-flash-lite',
-        apiKey: apiKey,
+        apiKey: Env.geminiApiKey,
         systemInstruction: Content.text(_systemPrompt),
       );
       
