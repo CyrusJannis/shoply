@@ -64,3 +64,7 @@ GoogleService-Info.plist
 
 # Old git backup
 .git_backup/
+-e 
+# Environment files
+*.env
+*.env.*
