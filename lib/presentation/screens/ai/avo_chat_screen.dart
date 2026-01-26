@@ -63,19 +63,9 @@ class _AvoChatScreenState extends ConsumerState<AvoChatScreen> {
 
   Future<void> _initializeAvo() async {
     try {
-      // Get API key from Gemini service (already initialized)
-      final geminiService = GeminiCategorizationService.instance;
-      final stats = geminiService.getCacheStats();
-      
-      // Initialize Avo with same API key (stored in environment/config)
-      // The Gemini service should already be initialized with the key
-      // We'll reuse the same initialization
+      // Initialize Avo with Gemini API key from Env
       if (!AvoAssistantService.instance.isInitialized) {
-        // Try to get API key from environment or use the one from GeminiCategorizationService
-        // For now, we'll initialize with the key from the app config
-        const apiKey = String.fromEnvironment('GEMINI_API_KEY', 
-            defaultValue: 'REDACTED_FIREBASE_KEY');
-        await AvoAssistantService.instance.initialize(apiKey);
+        await AvoAssistantService.instance.initialize();
       }
       
       setState(() {
