@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shoply/presentation/screens/auth/welcome_screen.dart';
 import 'package:shoply/presentation/screens/home/home_screen.dart';
+import 'package:shoply/presentation/screens/ai/avo_chat_screen.dart';
 import 'package:shoply/presentation/screens/recipes/recipes_screen.dart';
 import 'package:shoply/presentation/screens/recipes/recipe_detail_screen.dart';
 import 'package:shoply/presentation/screens/recipes/add_recipe_screen.dart';
