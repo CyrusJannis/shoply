@@ -12,9 +12,9 @@ class MainScaffold extends StatelessWidget {
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith('/home')) return 0;
-    // AI tab removed - index 1 skipped
-    if (location.startsWith('/recipes')) return 1;
-    if (location.startsWith('/profile')) return 2;
+    if (location.startsWith('/avo')) return 1; // AI/Avo chat tab
+    if (location.startsWith('/recipes')) return 2;
+    if (location.startsWith('/profile')) return 3;
     return 0;
   }
 
@@ -26,20 +26,20 @@ class MainScaffold extends StatelessWidget {
     switch (index) {
       case 0:
         context.go('/home');
-        // Notify tutorial of route change
         if (fromTutorial) {
           tutorial.onRouteChanged('/home');
         }
         break;
-      // AI tab removed - case 1 skipped
       case 1:
+        context.go('/avo'); // AI/Avo chat
+        break;
+      case 2:
         context.go('/recipes');
-        // Notify tutorial of route change
         if (fromTutorial) {
           tutorial.onRouteChanged('/recipes');
         }
         break;
-      case 2:
+      case 3:
         context.go('/profile');
         break;
     }
