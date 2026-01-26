@@ -487,6 +487,12 @@ class AppTranslations {
     'add_to_list': 'Add to List',
     'more_items': 'more items',
     
+    // Avo AI Chat
+    'ask_avo_anything': 'Ask Avo anything...',
+    'avo_chat': 'Chat with Avo',
+    'add_to_which_list': 'Add to which list?',
+    'select_list': 'Select a list',
+    
     // Subscription
     'unlock_premium_features': 'Unlock all premium features',
     'loading_subscriptions': 'Loading subscription options...',
