@@ -76,6 +76,10 @@ class MainScaffold extends StatelessWidget {
                   label: '',
                 ),
                 AdaptiveNavigationDestination(
+                  icon: 'bubble.left.and.bubble.right.fill', // Avo chat
+                  label: '',
+                ),
+                AdaptiveNavigationDestination(
                   icon: 'fork.knife',
                   label: '',
                 ),
@@ -90,10 +94,9 @@ class MainScaffold extends StatelessWidget {
           // Native UITabBar icons are approximately 28x28pt, centered in their tab area
           if (!isKeyboardVisible)
             Positioned(
-              // Center tab (recipes) - position exactly at center icon
-              left: screenWidth / 2 - 24, // Center minus half icon width
+              // Recipes tab (now index 2, third from left)
+              left: screenWidth * 0.625 - 24, // 5/8 of screen width
               width: 48, // Icon touch area
-              // Position at the center of the tab bar
               bottom: safeBottom + 12, // Center of 49pt tab bar
               height: 48, // Icon touch area
               child: IgnorePointer(
@@ -106,7 +109,7 @@ class MainScaffold extends StatelessWidget {
           // Home tab overlay (left tab icon)
           if (!isKeyboardVisible)
             Positioned(
-              left: screenWidth / 6 - 24, // Center of left third minus half icon width
+              left: screenWidth / 8 - 24, // Center of first quarter
               width: 48,
               bottom: safeBottom + 12,
               height: 48,
@@ -141,6 +144,11 @@ class MainScaffold extends StatelessWidget {
             ),
             activeIcon: const Icon(Icons.home_rounded),
             label: 'Home',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.smart_toy_rounded), // Avo chat
+            activeIcon: Icon(Icons.smart_toy_rounded),
+            label: 'Avo',
           ),
           BottomNavigationBarItem(
             icon: Icon(
