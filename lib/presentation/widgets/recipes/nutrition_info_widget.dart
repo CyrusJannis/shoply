@@ -24,8 +24,8 @@ class NutritionInfoWidget extends StatelessWidget {
 
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final cardColor = AppColors.surface(context);
-    final borderColor = AppColors.border(context);
+    final cardColor = AppColors.recipeSurface(context);
+    final borderColor = AppColors.recipeBorderColor(context);
 
     // Adjust for servings if needed
     final adjustedNutrition = servings > 1 
@@ -38,7 +38,6 @@ class NutritionInfoWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,14 +86,14 @@ class NutritionInfoWidget extends StatelessWidget {
                     context, 
                     context.tr('carbs'), 
                     '${adjustedNutrition.carbsG!.toStringAsFixed(0)}g',
-                    const Color(0xFFFFCC00),
+                    AppColors.recipeStarGold,
                   )),
                 if (adjustedNutrition.fatG != null)
                   Expanded(child: _buildMacroChip(
                     context, 
                     context.tr('fat'), 
                     '${adjustedNutrition.fatG!.toStringAsFixed(0)}g',
-                    const Color(0xFFFF9500),
+                    AppColors.recipeStep,
                   )),
               ],
             ),
@@ -130,7 +129,6 @@ class NutritionInfoWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: borderColor),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

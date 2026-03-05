@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/constants/app_dimensions.dart';
 import 'package:shoply/core/constants/app_text_styles.dart';
 import 'package:shoply/data/models/recipe.dart';
@@ -81,7 +82,7 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
         AppDimensions.paddingLarge + bottomPadding, // Safe area padding
       ),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: isDark ? AppColors.recipeDarkSurface : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -108,14 +109,14 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2C2C2E) : Colors.grey.shade100,
+              color: isDark ? AppColors.recipeDarkInput : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
                 Icon(
                   Icons.restaurant_rounded,
-                  color: isDark ? Colors.white70 : Colors.grey.shade700,
+                  color: AppColors.recipeTextSecondary(context),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -126,7 +127,7 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
                         'Servings',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: AppColors.recipeTextPrimary(context),
                         ),
                       ),
                       Text(
@@ -142,7 +143,7 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
                 // Servings controls
                 Container(
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF3A3A3C) : Colors.white,
+                  color: isDark ? AppColors.recipeDarkBorder : Colors.white,
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
@@ -158,7 +159,7 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
                         onPressed: _servings > 1 
                             ? () => setState(() => _servings--) 
                             : null,
-                        color: isDark ? Colors.white : Colors.black87,
+                        color: AppColors.recipeTextPrimary(context),
                         disabledColor: Colors.grey,
                       ),
                       Container(
@@ -169,7 +170,7 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black87,
+                            color: AppColors.recipeTextPrimary(context),
                           ),
                         ),
                       ),
@@ -178,7 +179,7 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
                         onPressed: _servings < 20 
                             ? () => setState(() => _servings++) 
                             : null,
-                        color: isDark ? Colors.white : Colors.black87,
+                        color: AppColors.recipeTextPrimary(context),
                         disabledColor: Colors.grey,
                       ),
                     ],
@@ -244,14 +245,14 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.swap_horiz, color: Colors.orange.shade700, size: 20),
+                          Icon(Icons.swap_horiz, color: AppColors.recipeAccentColor(context), size: 20),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'Use adapted ingredients',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.white : Colors.black87,
+                                color: AppColors.recipeTextPrimary(context),
                                 fontSize: 14,
                               ),
                             ),
@@ -279,14 +280,14 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
                   ...lists.map((list) => Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF2C2C2E) : Colors.grey.shade50,
+                      color: isDark ? AppColors.recipeDarkInput : Colors.grey.shade50,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: ListTile(
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF3A3A3C) : Colors.white,
+                          color: isDark ? AppColors.recipeDarkBorder : Colors.white,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.shopping_cart_rounded, size: 20),
@@ -295,7 +296,7 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
                         list.name,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: AppColors.recipeTextPrimary(context),
                         ),
                       ),
                       subtitle: Text(
@@ -387,7 +388,7 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
-                  color: isDark ? Colors.white : Colors.black87,
+                  color: AppColors.recipeTextPrimary(context),
                 ),
               ),
             ),
@@ -399,7 +400,7 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2C2C2E) : Colors.grey.shade100,
+            color: isDark ? AppColors.recipeDarkInput : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -407,13 +408,13 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.restaurant_menu, size: 20, color: Colors.green.shade600),
+                  Icon(Icons.restaurant_menu, size: 20, color: AppColors.recipeGreenColor(context)),
                   const SizedBox(width: 8),
                   Text(
                     '${ingredients.length} ingredients for $_servings servings',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: AppColors.recipeTextPrimary(context),
                     ),
                   ),
                 ],
@@ -422,13 +423,13 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.swap_horiz, size: 20, color: Colors.orange.shade600),
+                    Icon(Icons.swap_horiz, size: 20, color: AppColors.recipeAccentColor(context)),
                     const SizedBox(width: 8),
                     Text(
                       '$substitutedCount adapted for your diet',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.orange.shade700,
+                        color: AppColors.recipeAccentColor(context),
                       ),
                     ),
                   ],
@@ -453,7 +454,7 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
         Container(
           constraints: const BoxConstraints(maxHeight: 200),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2C2C2E) : Colors.grey.shade50,
+            color: isDark ? AppColors.recipeDarkInput : Colors.grey.shade50,
             borderRadius: BorderRadius.circular(12),
           ),
           child: ListView.separated(
@@ -472,9 +473,9 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
               return Row(
                 children: [
                   if (isSubstituted)
-                    Icon(Icons.swap_horiz, size: 16, color: Colors.orange.shade600)
+                    Icon(Icons.swap_horiz, size: 16, color: AppColors.recipeAccentColor(context))
                   else
-                    Icon(Icons.check_circle_outline, size: 16, color: Colors.green.shade600),
+                    Icon(Icons.check_circle_outline, size: 16, color: AppColors.recipeGreenColor(context)),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -483,7 +484,7 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
                         Text(
                           '${ingredient.amount > 0 ? "${ingredient.amount % 1 == 0 ? ingredient.amount.toInt() : ingredient.amount} " : ""}${ingredient.unit ?? ""} ${ingredient.name}',
                           style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black87,
+                            color: AppColors.recipeTextPrimary(context),
                             fontWeight: isSubstituted ? FontWeight.w600 : FontWeight.normal,
                           ),
                         ),
@@ -519,7 +520,7 @@ class _SelectListBottomSheetState extends ConsumerState<SelectListBottomSheet> {
             icon: const Icon(Icons.add_shopping_cart),
             label: Text('Add ${ingredients.length} Ingredients'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green.shade600,
+              backgroundColor: AppColors.recipeGreenColor(context),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(

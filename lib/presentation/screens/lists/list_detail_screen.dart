@@ -28,6 +28,7 @@ import 'package:shoply/presentation/widgets/common/loading_indicator.dart';
 import 'package:shoply/presentation/widgets/recommendations/ml_recommendations_section.dart';
 import 'package:shoply/presentation/screens/lists/widgets/background_selection_sheet.dart';
 import 'package:shoply/presentation/screens/lists/category_order_screen.dart';
+import 'package:shoply/presentation/screens/main_scaffold.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shoply/data/services/unread_service.dart'; // Neu
 import 'package:flutter_app_badger/flutter_app_badger.dart'; // Neu
@@ -437,7 +438,11 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                     child: IconButton(
                       icon: const Icon(Icons.add_rounded, size: 22),
                       color: Colors.white,
-                      onPressed: () => _showAddItemDialog(context),
+                      onPressed: () {
+                        final prefill = _searchController.text.trim();
+                        _searchController.clear();
+                        _showAddItemDialog(context, prefill: prefill);
+                      },
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       splashRadius: 20,
@@ -498,7 +503,7 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
                     padding: EdgeInsets.only(
                       left: AppDimensions.screenHorizontalPadding,
                       right: AppDimensions.screenHorizontalPadding,
-                      bottom: 120 + MediaQuery.of(context).padding.bottom, // Navigation Bar + Safe Area
+                      bottom: MainScaffold.getNavbarClearance(context), // Dynamic navbar clearance
                     ),
                     itemCount: groupedItems.length + 2, // +1 for recommendations, +1 for Complete Button
                   itemBuilder: (context, index) {
@@ -855,8 +860,11 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
     // already handles state updates and the list count will update automatically
   }
 
-  void _showAddItemDialog(BuildContext context) {
-    final nameController = TextEditingController();
+  void _showAddItemDialog(BuildContext context, {String prefill = ''}) {
+    // Dismiss keyboard from the search bar before opening the sheet
+    FocusManager.instance.primaryFocus?.unfocus();
+    
+    final nameController = TextEditingController(text: prefill);
     final quantityController = TextEditingController(text: '1');
     final notesController = TextEditingController();
     String? selectedUnit;
@@ -867,227 +875,261 @@ class _ListDetailScreenState extends ConsumerState<ListDetailScreen> {
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
 
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: sheetColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
-      ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 24,
-          right: 24,
-          top: 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Handle bar
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: textSecondary.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      barrierColor: Colors.black54,
+      builder: (context) {
+        return Center(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 24,
+                right: 24,
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              AppLocalizations.of(context).addItem,
-              style: TextStyle(
-                color: textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 20),
-            
-            TextField(
-              controller: nameController,
-              style: TextStyle(color: textPrimary),
-              decoration: InputDecoration(
-                labelText: AppLocalizations.of(context).itemName,
-                labelStyle: TextStyle(color: textSecondary),
-                hintText: 'z.B. Milch, Brot, Äpfel',
-                hintStyle: TextStyle(color: textSecondary.withOpacity(0.6)),
-                filled: true,
-                fillColor: inputFillColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: borderColor),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: borderColor),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.accent),
-                ),
-              ),
-              autofocus: true,
-              textCapitalization: TextCapitalization.sentences,
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: quantityController,
-                    style: TextStyle(color: textPrimary),
-                    decoration: InputDecoration(
-                      labelText: 'Quantity',
-                      labelStyle: TextStyle(color: textSecondary),
-                      filled: true,
-                      fillColor: inputFillColor,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: borderColor),
+              child: Material(
+                color: sheetColor,
+                borderRadius: BorderRadius.circular(24),
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                  child: StatefulBuilder(
+                    builder: (context, setDialogState) {
+                      return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header row with title and X button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context).addItem,
+                            style: TextStyle(
+                              color: textPrimary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: textSecondary.withOpacity(0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: borderColor),
+                      const SizedBox(height: 20),
+                      
+                      TextField(
+                        controller: nameController,
+                        style: TextStyle(color: textPrimary),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context).itemName,
+                          labelStyle: TextStyle(color: textSecondary),
+                          hintText: 'z.B. Milch, Brot, Äpfel',
+                          hintStyle: TextStyle(color: textSecondary.withOpacity(0.6)),
+                          filled: true,
+                          fillColor: inputFillColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: AppColors.accent),
+                          ),
+                        ),
+                        autofocus: false,
+                        textCapitalization: TextCapitalization.sentences,
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.accent),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Quantity field
+                      TextField(
+                        controller: quantityController,
+                        style: TextStyle(color: textPrimary),
+                        decoration: InputDecoration(
+                          labelText: 'Quantity',
+                          labelStyle: TextStyle(color: textSecondary),
+                          filled: true,
+                          fillColor: inputFillColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: AppColors.accent),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
                       ),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: selectedUnit,
-                    dropdownColor: sheetColor,
-                    style: TextStyle(color: textPrimary),
-                    decoration: InputDecoration(
-                      labelText: 'Unit',
-                      labelStyle: TextStyle(color: textSecondary),
-                      filled: true,
-                      fillColor: inputFillColor,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: borderColor),
+                      
+                      const SizedBox(height: 12),
+                      
+                      // Unit pill selector
+                      Text(
+                        'Unit',
+                        style: TextStyle(
+                          color: textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: borderColor),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: ['pcs', 'kg', 'g', 'l', 'ml', 'pack'].map((unit) {
+                          final isSelected = selectedUnit == unit;
+                          return GestureDetector(
+                            onTap: () {
+                              setDialogState(() {
+                                selectedUnit = isSelected ? null : unit;
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.accent.withOpacity(0.15)
+                                    : inputFillColor,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.accent
+                                      : borderColor,
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Text(
+                                unit,
+                                style: TextStyle(
+                                  color: isSelected ? AppColors.accent : textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
-                    ),
-                    items: ['pcs', 'kg', 'g', 'l', 'ml', 'pack']
-                        .map((unit) => DropdownMenuItem(
-                              value: unit,
-                              child: Text(unit),
-                            ))
-                        .toList(),
-                    onChanged: (value) => selectedUnit = value,
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            
-            TextField(
-              controller: notesController,
-              style: TextStyle(color: textPrimary),
-              decoration: InputDecoration(
-                labelText: AppLocalizations.of(context).notes,
-                labelStyle: TextStyle(color: textSecondary),
-                hintText: 'z.B. Bio, Vollmilch, 1l',
-                hintStyle: TextStyle(color: textSecondary.withOpacity(0.6)),
-                filled: true,
-                fillColor: inputFillColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: borderColor),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: borderColor),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.accent),
-                ),
-              ),
-              maxLines: 2,
-              textCapitalization: TextCapitalization.sentences,
-            ),
-            
-            const SizedBox(height: 24),
-            
-            SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (nameController.text.trim().isEmpty) return;
+                      
+                      const SizedBox(height: 16),
+                      
+                      TextField(
+                        controller: notesController,
+                        style: TextStyle(color: textPrimary),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context).notes,
+                          labelStyle: TextStyle(color: textSecondary),
+                          hintText: 'z.B. Bio, Vollmilch, 1l',
+                          hintStyle: TextStyle(color: textSecondary.withOpacity(0.6)),
+                          filled: true,
+                          fillColor: inputFillColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: AppColors.accent),
+                          ),
+                        ),
+                        maxLines: 2,
+                        textCapitalization: TextCapitalization.sentences,
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      SizedBox(
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (nameController.text.trim().isEmpty) return;
 
-                  final name = nameController.text.trim();
-                  
-                  try {
-                    final user = ref.read(currentUserProvider).value;
-                    
-                    final isDietWarning = user != null
-                        ? DietChecker.checkDietWarning(name, user.dietPreferences)
-                        : false;
+                            final name = nameController.text.trim();
+                            
+                            try {
+                              final user = ref.read(currentUserProvider).value;
+                              
+                              final isDietWarning = user != null
+                                  ? DietChecker.checkDietWarning(name, user.dietPreferences)
+                                  : false;
 
-                    await ref.read(itemsNotifierProvider(widget.listId).notifier).addItem(
-                          name: name,
-                          quantity: double.tryParse(quantityController.text) ?? 1.0,
-                          unit: selectedUnit,
-                          category: null,
-                          notes: notesController.text.trim().isEmpty
-                              ? null
-                              : notesController.text.trim(),
-                          isDietWarning: isDietWarning,
-                        );
+                              await ref.read(itemsNotifierProvider(widget.listId).notifier).addItem(
+                                    name: name,
+                                    quantity: double.tryParse(quantityController.text) ?? 1.0,
+                                    unit: selectedUnit,
+                                    category: null,
+                                    notes: notesController.text.trim().isEmpty
+                                        ? null
+                                        : notesController.text.trim(),
+                                    isDietWarning: isDietWarning,
+                                  );
 
-                    Navigator.pop(context);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(context.tr('error_adding', params: {'error': e.toString()})),
-                        backgroundColor: AppColors.error,
+                              Navigator.pop(context);
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(context.tr('error_adding', params: {'error': e.toString()})),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(
+                            AppLocalizations.of(context).addItem,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: Text(
-                  AppLocalizations.of(context).addItem,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
+                    ],
+                  );
+                    },
                   ),
                 ),
               ),
             ),
-            
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

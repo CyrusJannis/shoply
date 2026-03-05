@@ -38,7 +38,7 @@ class _CreatorsScreenState extends ConsumerState<CreatorsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = AppColors.background(context);
+    final backgroundColor = AppColors.recipeBg(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
     
@@ -216,10 +216,10 @@ class _CreatorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = AppColors.surface(context);
+    final cardColor = AppColors.recipeSurface(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final borderColor = AppColors.border(context);
+    final borderColor = AppColors.recipeBorderColor(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -227,7 +227,6 @@ class _CreatorCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
         boxShadow: isDark ? null : [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -252,7 +251,7 @@ class _CreatorCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
-                      colors: [AppColors.accent, AppColors.accentTeal],
+                      colors: [AppColors.recipeAccentColor(context), AppColors.recipeAccentDark],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -298,20 +297,20 @@ class _CreatorCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppColors.accent.withOpacity(0.1),
+                              color: AppColors.recipeAccentColor(context).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.restaurant_rounded, size: 12, color: AppColors.accent),
+                                Icon(Icons.restaurant_rounded, size: 12, color: AppColors.recipeAccentColor(context)),
                                 const SizedBox(width: 4),
                                 Text(
                                   recipeCount == 1 
                                     ? '1 ${context.tr('recipe_singular')}'
                                     : '$recipeCount ${context.tr('recipes_plural')}',
                                   style: TextStyle(
-                                    color: AppColors.accent,
+                                    color: AppColors.recipeAccentColor(context),
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -324,18 +323,18 @@ class _CreatorCard extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFCC00).withOpacity(0.15),
+                              color: AppColors.recipeStarColor(context).withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.star_rounded, size: 12, color: Color(0xFFFFCC00)),
+                                  Icon(Icons.star_rounded, size: 12, color: AppColors.recipeStarColor(context)),
                                   const SizedBox(width: 3),
                                   Text(
                                     averageRating.toStringAsFixed(1),
-                                    style: const TextStyle(
-                                      color: Color(0xFFE5B800),
+                                    style: TextStyle(
+                                      color: AppColors.recipeStarColor(context),
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -382,7 +381,7 @@ class _CreatorCard extends StatelessWidget {
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
-            color: AppColors.accent,
+            color: AppColors.recipeAccent,
           ),
         ),
       ),

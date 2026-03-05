@@ -80,7 +80,7 @@ class FollowButton extends ConsumerWidget {
         },
         icon: Icon(
           isFollowing ? Icons.person_remove_rounded : Icons.person_add_rounded,
-          color: isFollowing ? AppColors.textSecondary(context) : AppColors.accent,
+          color: isFollowing ? AppColors.textSecondary(context) : AppColors.recipeAccentColor(context),
         ),
       );
     }
@@ -101,8 +101,8 @@ class FollowButton extends ConsumerWidget {
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: isFollowing 
-              ? AppColors.surface(context) 
-              : AppColors.accent,
+              ? AppColors.recipeSurface(context) 
+              : AppColors.recipeAccentColor(context),
           foregroundColor: isFollowing 
               ? AppColors.textPrimary(context) 
               : Colors.white,
@@ -111,7 +111,7 @@ class FollowButton extends ConsumerWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
             side: isFollowing 
-                ? BorderSide(color: AppColors.border(context)) 
+                ? BorderSide(color: AppColors.recipeBorderColor(context)) 
                 : BorderSide.none,
           ),
         ),

@@ -17,6 +17,13 @@ import WidgetKit
     // Register plugins first
     GeneratedPluginRegistrant.register(with: self)
     
+    // Register native Liquid Glass platform view
+    let glassFactory = LiquidGlassViewFactory(
+      messenger: (window?.rootViewController as! FlutterViewController).binaryMessenger
+    )
+    registrar(forPlugin: "LiquidGlassView")!
+      .register(glassFactory, withId: "shoply/liquid_glass")
+    
     // Setup widget method channel
     setupWidgetChannel()
     

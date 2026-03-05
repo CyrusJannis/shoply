@@ -59,7 +59,7 @@ class _RecipeCollectionsSectionState extends State<RecipeCollectionsSection> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              const Icon(Icons.collections_bookmark_rounded, size: 20, color: Color(0xFFAF52DE)),
+              Icon(Icons.collections_bookmark_rounded, size: 20, color: AppColors.recipeAccentColor(context)),
               const SizedBox(width: 8),
               Text(
                 context.tr('collections'),
@@ -107,10 +107,10 @@ class _CollectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = AppColors.surface(context);
+    final cardColor = AppColors.recipeSurface(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final borderColor = AppColors.border(context);
+    final borderColor = AppColors.recipeBorderColor(context);
 
     return GestureDetector(
       onTap: onTap,
@@ -120,7 +120,6 @@ class _CollectionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor),
         ),
         padding: const EdgeInsets.all(12),
         child: Column(

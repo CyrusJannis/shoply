@@ -55,6 +55,10 @@ class SubscriptionService {
   // Loading state
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  // Store availability
+  bool _isStoreAvailable = false;
+  bool get isStoreAvailable => _isStoreAvailable;
   
   // SharedPreferences key
   static const String _subscriptionKey = 'subscription_status';
@@ -66,6 +70,7 @@ class SubscriptionService {
     
     // Check if IAP is available
     final available = await _iap.isAvailable();
+    _isStoreAvailable = available;
     if (!available) {
       debugPrint('⚠️ [SUBSCRIPTION] In-app purchases not available');
       _status = SubscriptionStatus.notSubscribed;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/data/models/recipe_filter.dart';
 import 'package:shoply/presentation/state/recipe_filter_provider.dart';
 
@@ -234,10 +235,10 @@ class _AdvancedFiltersModalState extends ConsumerState<AdvancedFiltersModal> {
             child: Container(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
               decoration: BoxDecoration(
-                color: isDarkMode ? Colors.grey.shade900 : Colors.grey.shade50,
-                border: Border(
-                  top: BorderSide(
-                    color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
+              color: isDarkMode ? AppColors.recipeDarkSurface : AppColors.recipeLightSurface,
+              border: Border(
+                top: BorderSide(
+                  color: isDarkMode ? AppColors.recipeDarkBorder : AppColors.recipeLightBorder,
                   ),
                 ),
               ),
@@ -260,7 +261,7 @@ class _AdvancedFiltersModalState extends ConsumerState<AdvancedFiltersModal> {
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade600,
+                        backgroundColor: AppColors.recipeAccentColor(context),
                         foregroundColor: Colors.white,
                       ),
                       child: const Text('Apply'),
@@ -353,7 +354,7 @@ class _AdvancedFiltersModalState extends ConsumerState<AdvancedFiltersModal> {
           });
         },
         style: OutlinedButton.styleFrom(
-          backgroundColor: isSelected ? Colors.blue.shade600 : null,
+          backgroundColor: isSelected ? AppColors.recipeAccentColor(context) : null,
           foregroundColor: isSelected ? Colors.white : null,
         ),
         child: Text(label),

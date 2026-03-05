@@ -190,9 +190,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       );
     }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? Colors.grey[900] : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
+    final cardColor = AppColors.recipeSurface(context);
+    final textColor = AppColors.recipeTextPrimary(context);
     
     return Scaffold(
       body: CustomScrollView(
@@ -202,7 +201,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             expandedHeight: 280,
             pinned: true,
             stretch: true,
-            backgroundColor: isDark ? Colors.black : Colors.white,
+            backgroundColor: AppColors.recipeBg(context),
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
@@ -211,11 +210,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     imageUrl: _recipe!.imageUrl,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
-                      color: Colors.grey[300],
+                      color: AppColors.recipeInput(context),
                       child: const Center(child: CircularProgressIndicator()),
                     ),
                     errorWidget: (context, url, error) => Container(
-                      color: Colors.grey[300],
+                      color: AppColors.recipeInput(context),
                       child: const Icon(Icons.restaurant, size: 80),
                     ),
                   ),
@@ -342,7 +341,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     return Container(
                       margin: const EdgeInsets.only(right: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.accent.withOpacity(0.9),
+                        color: AppColors.recipeAccentColor(context).withOpacity(0.9),
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
@@ -405,7 +404,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: AppColors.recipeBorderColor(context).withOpacity(0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -418,29 +417,29 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     icon: Icons.schedule_rounded,
                     value: '${_recipe!.totalTimeMinutes}',
                     label: 'min total',
-                    color: AppColors.accent,
+                    color: AppColors.recipeStepColor(context),
                   ),
-                  Container(width: 1, height: 40, color: Colors.grey.withOpacity(0.2)),
+                  Container(width: 1, height: 40, color: AppColors.recipeBorderColor(context).withOpacity(0.3)),
                   _QuickInfoItem(
                     icon: Icons.restaurant_rounded,
                     value: '$_servings',
                     label: 'servings',
-                    color: AppColors.success,
+                    color: AppColors.recipeAccentColor(context),
                     onTap: () => _showServingsDialog(),
                   ),
-                  Container(width: 1, height: 40, color: Colors.grey.withOpacity(0.2)),
+                  Container(width: 1, height: 40, color: AppColors.recipeBorderColor(context).withOpacity(0.3)),
                   _QuickInfoItem(
                     icon: Icons.star_rounded,
                     value: _recipe!.averageRating.toStringAsFixed(1),
                     label: '(${_recipe!.ratingCount})',
-                    color: Colors.amber,
+                    color: AppColors.recipeStarColor(context),
                   ),
-                  Container(width: 1, height: 40, color: Colors.grey.withOpacity(0.2)),
+                  Container(width: 1, height: 40, color: AppColors.recipeBorderColor(context).withOpacity(0.3)),
                   _QuickInfoItem(
                     icon: Icons.visibility_rounded,
                     value: _formatViewCount(_recipe!.viewCount),
                     label: context.tr('views'),
-                    color: Colors.blue,
+                    color: AppColors.recipeTextSecondary(context),
                   ),
                 ],
               ),
@@ -465,7 +464,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: AppColors.recipeBorderColor(context).withOpacity(0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -476,7 +475,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.info_outline, size: 18, color: AppColors.accent),
+                      Icon(Icons.info_outline, size: 18, color: AppColors.recipeStarColor(context)),
                       const SizedBox(width: 8),
                       Text(context.tr('about'), style: AppTextStyles.h3.copyWith(color: textColor)),
                     ],
@@ -532,7 +531,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: AppColors.recipeBorderColor(context).withOpacity(0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -543,7 +542,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.restaurant_menu, size: 18, color: AppColors.success),
+                      Icon(Icons.restaurant_menu, size: 18, color: AppColors.recipeGreenColor(context)),
                       const SizedBox(width: 8),
                       Text(context.tr('ingredients'), style: AppTextStyles.h3.copyWith(color: textColor)),
                       const Spacer(),
@@ -556,14 +555,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                             Text(
                               _showAdaptedIngredients ? context.tr('adapted') : context.tr('original'),
                               style: TextStyle(
-                                color: _showAdaptedIngredients ? AppColors.success : Colors.grey,
+                                color: _showAdaptedIngredients ? AppColors.recipeGreenColor(context) : AppColors.recipeBorderColor(context),
                                 fontWeight: FontWeight.w500,
                                 fontSize: 12,
                               ),
                             ),
                             Switch(
                               value: _showAdaptedIngredients,
-                              activeColor: AppColors.success,
+                              activeColor: AppColors.recipeGreenColor(context),
                               onChanged: (value) => setState(() => _showAdaptedIngredients = value),
                             ),
                           ],
@@ -588,7 +587,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                               Icon(
                                 isSubstituted ? Icons.swap_horiz : Icons.circle,
                                 size: isSubstituted ? 16 : 6,
-                                color: isSubstituted ? Colors.orange : Colors.grey,
+                                color: isSubstituted ? AppColors.recipeAccentColor(context) : AppColors.recipeBorderColor(context),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -599,9 +598,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                                     RichText(
                                       text: TextSpan(
                                         style: AppTextStyles.bodyMedium.copyWith(
-                                          color: Theme.of(context).brightness == Brightness.dark
-                                              ? Colors.white
-                                              : Colors.black87,
+                                          color: AppColors.recipeTextPrimary(context),
                                         ),
                                         children: [
                                           if (isSubstituted) ...[
@@ -612,7 +609,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                                             TextSpan(
                                               text: ' (statt ${ingredientInfo.original.name})',
                                               style: TextStyle(
-                                                color: Colors.grey[600],
+                                                color: AppColors.textSecondary(context),
                                                 fontSize: 12,
                                                 decoration: TextDecoration.lineThrough,
                                               ),
@@ -632,14 +629,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                               decoration: BoxDecoration(
-                                                color: Colors.orange.shade100,
+                                                color: AppColors.recipeAccentColor(context).withOpacity(0.15),
                                                 borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
                                               ),
                                               child: Text(
                                                 reason,
                                                 style: TextStyle(
                                                   fontSize: 10,
-                                                  color: Colors.orange.shade900,
+                                                  color: AppColors.recipeAccentColor(context),
                                                 ),
                                               ),
                                             )
@@ -664,7 +661,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       icon: const Icon(Icons.add_shopping_cart),
                       label: Text(context.tr('add_to_shopping_list')),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent,
+                        backgroundColor: AppColors.recipeAccentColor(context),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.all(14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -688,7 +685,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: AppColors.recipeBorderColor(context).withOpacity(0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -699,7 +696,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.format_list_numbered, size: 18, color: AppColors.warning),
+                      Icon(Icons.format_list_numbered, size: 18, color: AppColors.recipeStepColor(context)),
                       const SizedBox(width: 8),
                       Text(context.tr('instructions'), style: AppTextStyles.h3.copyWith(color: textColor)),
                     ],
@@ -715,7 +712,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                             width: 28,
                             height: 28,
                             decoration: BoxDecoration(
-                              color: AppColors.accent,
+                              color: AppColors.recipeStepColor(context),
                               shape: BoxShape.circle,
                             ),
                             child: Center(
@@ -910,7 +907,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.accent,
+            backgroundColor: AppColors.recipeAccentColor(context),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
@@ -928,7 +925,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       child: ElevatedButton(
         onPressed: () => showSubscriptionSheet(context),
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.accent,
+          backgroundColor: AppColors.recipeAccentColor(context),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
@@ -986,8 +983,7 @@ class _QuickInfoItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : Colors.black87;
+    final textColor = AppColors.recipeTextPrimary(context);
     
     return GestureDetector(
       onTap: onTap,

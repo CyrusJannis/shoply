@@ -116,11 +116,11 @@ class _RecipeAuthorPageState extends ConsumerState<RecipeAuthorPage> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = AppColors.background(context);
+    final backgroundColor = AppColors.recipeBg(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final cardColor = AppColors.surface(context);
-    final borderColor = AppColors.border(context);
+    final cardColor = AppColors.recipeSurface(context);
+    final borderColor = AppColors.recipeBorderColor(context);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -177,7 +177,6 @@ class _RecipeAuthorPageState extends ConsumerState<RecipeAuthorPage> {
                           decoration: BoxDecoration(
                             color: cardColor,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: borderColor),
                           ),
                           child: Column(
                             children: [
@@ -187,7 +186,7 @@ class _RecipeAuthorPageState extends ConsumerState<RecipeAuthorPage> {
                                 height: 100,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: AppColors.inputFill(context),
+                                color: AppColors.recipeInput(context),
                                   border: Border.all(color: borderColor, width: 2),
                                 ),
                                 child: _authorInfo?['avatar_url'] != null
@@ -331,14 +330,13 @@ class _StatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textPrimary = AppColors.textPrimary(context);
-    final borderColor = AppColors.border(context);
+    final borderColor = AppColors.recipeBorderColor(context);
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.inputFill(context),
+        color: AppColors.recipeInput(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -346,7 +344,7 @@ class _StatChip extends StatelessWidget {
           Icon(
             icon, 
             size: 18, 
-            color: isRating ? const Color(0xFFFFCC00) : textPrimary.withOpacity(0.7),
+            color: isRating ? AppColors.recipeStarColor(context) : textPrimary.withOpacity(0.7),
           ),
           const SizedBox(width: 6),
           Text(
@@ -370,10 +368,10 @@ class _RecipeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = AppColors.surface(context);
+    final cardColor = AppColors.recipeSurface(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final borderColor = AppColors.border(context);
+    final borderColor = AppColors.recipeBorderColor(context);
 
     return GestureDetector(
       onTap: () {
@@ -385,7 +383,6 @@ class _RecipeCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,7 +396,7 @@ class _RecipeCard extends StatelessWidget {
                     imageUrl: recipe.imageUrl,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
-                      color: AppColors.inputFill(context),
+                      color: AppColors.recipeInput(context),
                       child: Center(
                         child: CircularProgressIndicator(
                           color: textSecondary,
@@ -408,7 +405,7 @@ class _RecipeCard extends StatelessWidget {
                       ),
                     ),
                     errorWidget: (context, url, error) => Container(
-                      color: AppColors.inputFill(context),
+                      color: AppColors.recipeInput(context),
                       child: Icon(Icons.restaurant, size: 48, color: textSecondary),
                     ),
                   ),

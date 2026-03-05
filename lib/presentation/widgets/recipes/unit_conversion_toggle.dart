@@ -51,7 +51,7 @@ class UnitConversionToggle extends ConsumerWidget {
     final unitSystem = ref.watch(unitSystemProvider);
     final isMetric = unitSystem == UnitSystem.metric;
     final textSecondary = AppColors.textSecondary(context);
-    final borderColor = AppColors.border(context);
+    final borderColor = AppColors.recipeBorderColor(context);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -68,9 +68,8 @@ class UnitConversionToggle extends ConsumerWidget {
         ],
         Container(
           decoration: BoxDecoration(
-            color: AppColors.inputFill(context),
+            color: AppColors.recipeInput(context),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: borderColor),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -106,7 +105,7 @@ class UnitConversionToggle extends ConsumerWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent : Colors.transparent,
+          color: isSelected ? AppColors.recipeAccentColor(context) : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
@@ -132,15 +131,14 @@ class UnitConversionSettingsTile extends ConsumerWidget {
     final isMetric = unitSystem == UnitSystem.metric;
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final inputFill = AppColors.inputFill(context);
-    final borderColor = AppColors.border(context);
+    final inputFill = AppColors.recipeInput(context);
+    final borderColor = AppColors.recipeBorderColor(context);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: inputFill,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,7 +213,7 @@ class UnitConversionSettingsTile extends ConsumerWidget {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    final borderColor = AppColors.border(context);
+    final borderColor = AppColors.recipeBorderColor(context);
 
     return GestureDetector(
       onTap: onTap,
@@ -223,10 +221,10 @@ class UnitConversionSettingsTile extends ConsumerWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? AppColors.recipeAccentColor(context).withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? AppColors.accent : borderColor,
+            color: isSelected ? AppColors.recipeAccentColor(context) : borderColor,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -235,7 +233,7 @@ class UnitConversionSettingsTile extends ConsumerWidget {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? AppColors.accent : AppColors.textPrimary(context),
+                color: isSelected ? AppColors.recipeAccentColor(context) : AppColors.textPrimary(context),
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),

@@ -490,8 +490,6 @@ class AppTranslations {
     // Avo AI Chat
     'ask_avo_anything': 'Ask Avo anything...',
     'avo_chat': 'Chat with Avo',
-    'add_to_which_list': 'Add to which list?',
-    'select_list': 'Select a list',
     
     // Subscription
     'unlock_premium_features': 'Unlock all premium features',
@@ -999,8 +997,6 @@ class AppTranslations {
     // Avo AI Chat
     'ask_avo_anything': 'Frag Avo etwas...',
     'avo_chat': 'Mit Avo chatten',
-    'add_to_which_list': 'Zu welcher Liste?',
-    'select_list': 'Liste wählen',
     
     // Subscription
     'unlock_premium_features': 'Alle Premium-Funktionen freischalten',

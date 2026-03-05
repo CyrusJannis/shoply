@@ -69,7 +69,7 @@ class CategoryRecipesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recipesAsync = ref.watch(categoryRecipesProvider(categoryId));
-    final backgroundColor = AppColors.background(context);
+    final backgroundColor = AppColors.recipeBg(context);
     final textPrimary = AppColors.textPrimary(context);
     
     return Scaffold(
@@ -191,10 +191,10 @@ class _CategoryRecipeCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cardColor = AppColors.surface(context);
+    final cardColor = AppColors.recipeSurface(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final borderColor = AppColors.border(context);
+    final borderColor = AppColors.recipeBorderColor(context);
     final isSaved = ref.watch(isRecipeSavedProvider(recipe.id));
 
     return GestureDetector(
@@ -203,7 +203,6 @@ class _CategoryRecipeCard extends ConsumerWidget {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -219,12 +218,12 @@ class _CategoryRecipeCard extends ConsumerWidget {
                   fit: BoxFit.cover,
                   placeholder: (_, __) => Container(
                     height: 120,
-                    color: AppColors.inputFill(context),
+                    color: AppColors.recipeInput(context),
                     child: const Center(child: Icon(Icons.restaurant_rounded)),
                   ),
                   errorWidget: (_, __, ___) => Container(
                     height: 120,
-                    color: AppColors.inputFill(context),
+                    color: AppColors.recipeInput(context),
                     child: const Center(child: Icon(Icons.restaurant_rounded)),
                   ),
                 ),
@@ -280,7 +279,7 @@ class _CategoryRecipeCard extends ConsumerWidget {
                         ),
                         if (recipe.averageRating > 0) ...[
                           const Spacer(),
-                          const Icon(Icons.star_rounded, size: 12, color: Color(0xFFFFCC00)),
+                          Icon(Icons.star_rounded, size: 12, color: AppColors.recipeStarColor(context)),
                           const SizedBox(width: 2),
                           Text(
                             recipe.averageRating.toStringAsFixed(1),

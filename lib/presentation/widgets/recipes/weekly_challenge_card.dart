@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/core/localization/localization_helper.dart';
 import 'package:shoply/data/models/weekly_challenge.dart';
 import 'package:shoply/data/services/recipe_features_service.dart';
@@ -54,8 +55,8 @@ class _WeeklyChallengeCardState extends State<WeeklyChallengeCard> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xFFFF9500),
-              const Color(0xFFFF6B6B),
+              AppColors.recipeAccent,
+              AppColors.recipeStep,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -63,7 +64,7 @@ class _WeeklyChallengeCardState extends State<WeeklyChallengeCard> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFFF9500).withOpacity(0.3),
+              color: AppColors.recipeAccent.withOpacity(0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -164,7 +165,7 @@ class _WeeklyChallengeCardState extends State<WeeklyChallengeCard> {
                     Text(
                       context.tr('join_challenge'),
                       style: TextStyle(
-                        color: const Color(0xFFFF6B6B),
+                        color: AppColors.recipeStep,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
@@ -173,7 +174,7 @@ class _WeeklyChallengeCardState extends State<WeeklyChallengeCard> {
                     Icon(
                       Icons.arrow_forward_rounded,
                       size: 16,
-                      color: const Color(0xFFFF6B6B),
+                      color: AppColors.recipeStep,
                     ),
                   ],
                 ),

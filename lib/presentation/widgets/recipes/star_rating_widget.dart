@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shoply/core/constants/app_colors.dart';
 
 /// Interactive 5-star rating widget
 /// Supports:
@@ -51,8 +52,8 @@ class _StarRatingWidgetState extends State<StarRatingWidget> {
   @override
   Widget build(BuildContext context) {
     final displayRating = _hoverRating ?? _currentRating;
-    final filledColor = widget.filledColor ?? const Color(0xFFFFC107); // Amber
-    final emptyColor = widget.emptyColor ?? const Color(0xFFE0E0E0); // Grey
+    final filledColor = widget.filledColor ?? AppColors.recipeStarGold;
+    final emptyColor = widget.emptyColor ?? AppColors.recipeBorderColor(context);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -142,7 +143,7 @@ class CompactStarRating extends StatelessWidget {
             (index) => Icon(
               Icons.star_border,
               size: starSize,
-              color: const Color(0xFFE0E0E0),
+              color: AppColors.recipeBorderColor(context),
             ),
           ),
           const SizedBox(width: 4),
@@ -168,13 +169,13 @@ class CompactStarRating extends StatelessWidget {
 
           if (averageRating >= starNumber) {
             icon = Icons.star;
-            color = const Color(0xFFFFC107);
+            color = AppColors.recipeStarColor(context);
           } else if (averageRating >= starNumber - 0.5) {
             icon = Icons.star_half;
-            color = const Color(0xFFFFC107);
+            color = AppColors.recipeStarColor(context);
           } else {
             icon = Icons.star_border;
-            color = const Color(0xFFE0E0E0);
+            color = AppColors.recipeBorderColor(context);
           }
 
           return Icon(icon, size: starSize, color: color);

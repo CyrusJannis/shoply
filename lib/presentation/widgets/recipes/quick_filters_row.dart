@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shoply/core/constants/app_colors.dart';
 import 'package:shoply/data/models/recipe_filter.dart';
 import 'package:shoply/presentation/state/recipe_filter_provider.dart';
 import 'package:shoply/presentation/widgets/recipes/quick_filter_card.dart';
@@ -69,8 +70,8 @@ class _QuickFiltersRowState extends ConsumerState<QuickFiltersRow> {
               margin: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF3A3A3C)
-                    : const Color(0xFFE5E5EA),
+                    ? AppColors.recipeDarkBorder
+                    : AppColors.recipeLightBorder,
                 borderRadius: BorderRadius.circular(0.5),
               ),
             ),

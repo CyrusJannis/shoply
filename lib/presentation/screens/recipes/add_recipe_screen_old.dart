@@ -148,10 +148,10 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = AppColors.background(context);
+    final backgroundColor = AppColors.recipeBg(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final inputFill = AppColors.inputFill(context);
+    final inputFill = AppColors.recipeInput(context);
     
     if (_isLoadingDraft) {
       return Scaffold(
@@ -243,7 +243,6 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
                 decoration: BoxDecoration(
                   color: inputFill,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border(context)),
                   image: _selectedImage != null
                       ? DecorationImage(
                           image: FileImage(_selectedImage!),
@@ -262,7 +261,7 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
                           Text(
                             context.tr('photo_required'),
                             style: TextStyle(
-                              color: Colors.orange.withOpacity(0.8),
+                              color: AppColors.recipeAccentColor(context).withOpacity(0.8),
                               fontSize: 12,
                             ),
                           ),
@@ -432,7 +431,7 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
                       height: 32,
                       margin: const EdgeInsets.only(top: 8),
                       decoration: BoxDecoration(
-                        color: AppColors.info,
+                        color: AppColors.recipeAccentColor(context),
                         shape: BoxShape.circle,
                       ),
                       child: Center(

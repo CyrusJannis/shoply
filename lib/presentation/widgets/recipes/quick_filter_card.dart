@@ -24,8 +24,8 @@ class QuickFilterCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textPrimary = AppColors.textPrimary(context);
-    final surfaceColor = AppColors.surface(context);
-    final borderColor = AppColors.border(context);
+    final surfaceColor = AppColors.recipeSurface(context);
+    final borderColor = AppColors.recipeBorderColor(context);
     final translatedLabel = _getTranslatedLabel(context);
 
     return Semantics(
@@ -39,12 +39,8 @@ class QuickFilterCard extends StatelessWidget {
           curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.accent : surfaceColor,
+            color: isActive ? AppColors.recipeAccentColor(context) : surfaceColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isActive ? AppColors.accent : borderColor,
-              width: 1,
-            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

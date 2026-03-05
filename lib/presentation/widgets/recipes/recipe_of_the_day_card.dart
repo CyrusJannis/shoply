@@ -71,11 +71,11 @@ class _RecipeOfTheDayCardState extends State<RecipeOfTheDayCard> {
               imageUrl: _recipe!.imageUrl,
               fit: BoxFit.cover,
               placeholder: (_, __) => Container(
-                color: AppColors.inputFill(context),
+                color: AppColors.recipeInput(context),
                 child: const Center(child: CircularProgressIndicator()),
               ),
               errorWidget: (_, __, ___) => Container(
-                color: AppColors.inputFill(context),
+                color: AppColors.recipeInput(context),
                 child: const Icon(Icons.restaurant_rounded, size: 48),
               ),
             ),
@@ -100,7 +100,7 @@ class _RecipeOfTheDayCardState extends State<RecipeOfTheDayCard> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppColors.accent,
+                  color: AppColors.recipeAccentColor(context),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -152,7 +152,7 @@ class _RecipeOfTheDayCardState extends State<RecipeOfTheDayCard> {
                       ),
                       const SizedBox(width: 12),
                       if (_recipe!.averageRating > 0) ...[
-                        const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFCC00)),
+                        Icon(Icons.star_rounded, size: 14, color: AppColors.recipeStarColor(context)),
                         const SizedBox(width: 4),
                         Text(
                           _recipe!.averageRating.toStringAsFixed(1),

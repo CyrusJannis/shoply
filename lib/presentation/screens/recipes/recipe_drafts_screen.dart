@@ -69,11 +69,11 @@ class _RecipeDraftsScreenState extends State<RecipeDraftsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = AppColors.background(context);
+    final backgroundColor = AppColors.recipeBg(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final cardColor = AppColors.surface(context);
-    final borderColor = AppColors.border(context);
+    final cardColor = AppColors.recipeSurface(context);
+    final borderColor = AppColors.recipeBorderColor(context);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -288,8 +288,8 @@ class _DraftCard extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: draft.isComplete
-                                  ? Colors.green.withOpacity(0.15)
-                                  : Colors.orange.withOpacity(0.15),
+                                  ? AppColors.recipeGreenColor(context).withOpacity(0.15)
+                                  : AppColors.recipeAccentColor(context).withOpacity(0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -298,8 +298,8 @@ class _DraftCard extends StatelessWidget {
                                   : context.tr('incomplete'),
                               style: TextStyle(
                                 color: draft.isComplete
-                                    ? Colors.green
-                                    : Colors.orange,
+                                    ? AppColors.recipeGreenColor(context)
+                                    : AppColors.recipeAccentColor(context),
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                               ),

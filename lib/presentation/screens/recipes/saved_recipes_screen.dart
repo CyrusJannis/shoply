@@ -40,7 +40,7 @@ class _SavedRecipesScreenState extends ConsumerState<SavedRecipesScreen> {
     
     // Debug logging
     print('🔍 [SAVED_RECIPES_SCREEN] isLoading: ${savedState.isLoading}, count: ${savedState.savedRecipes.length}');
-    final backgroundColor = AppColors.background(context);
+    final backgroundColor = AppColors.recipeBg(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
     
@@ -139,8 +139,8 @@ class _SavedRecipesScreenState extends ConsumerState<SavedRecipesScreen> {
   Widget _buildEmptyState(BuildContext context) {
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final cardColor = AppColors.surface(context);
-    final borderColor = AppColors.border(context);
+    final cardColor = AppColors.recipeSurface(context);
+    final borderColor = AppColors.recipeBorderColor(context);
     
     return Center(
       child: Padding(
@@ -153,13 +153,13 @@ class _SavedRecipesScreenState extends ConsumerState<SavedRecipesScreen> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.1),
+                color: AppColors.recipeAccentColor(context).withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.bookmark_border_rounded,
                 size: 48,
-                color: AppColors.accent,
+                color: AppColors.recipeAccentColor(context),
               ),
             ),
             const SizedBox(height: 24),
@@ -212,11 +212,11 @@ class _SavedRecipeCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cardColor = AppColors.surface(context);
+    final cardColor = AppColors.recipeSurface(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final borderColor = AppColors.border(context);
-    final inputFill = AppColors.inputFill(context);
+    final borderColor = AppColors.recipeBorderColor(context);
+    final inputFill = AppColors.recipeInput(context);
 
     return Dismissible(
       key: Key(recipe.id),
@@ -237,7 +237,6 @@ class _SavedRecipeCard extends ConsumerWidget {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor, width: 1),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -357,7 +356,7 @@ class _SavedRecipeCard extends ConsumerWidget {
                         ),
                         if (recipe.averageRating > 0) ...[
                           const SizedBox(width: 10),
-                          const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFCC00)),
+                          Icon(Icons.star_rounded, size: 14, color: AppColors.recipeStarColor(context)),
                           const SizedBox(width: 3),
                           Text(
                             recipe.averageRating.toStringAsFixed(1),

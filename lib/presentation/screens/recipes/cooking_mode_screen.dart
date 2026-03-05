@@ -51,12 +51,14 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
   String _tr(String key) => AppTranslations.get(key, _languageCode);
   String _trParams(String key, Map<String, String> params) => AppTranslations.get(key, _languageCode, params: params);
 
-  // Colors based on theme
-  Color get _bgColor => _isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC);
-  Color get _cardColor => _isDark ? const Color(0xFF1A1A1A) : Colors.white;
-  Color get _textPrimary => _isDark ? Colors.white : const Color(0xFF1A1A2E);
-  Color get _textSecondary => _isDark ? const Color(0xFFA0A0A0) : const Color(0xFF64748B);
-  Color get _borderColor => _isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE2E8F0);
+  // Colors based on theme — "Cookbook Evening" warm palette
+  Color get _bgColor => _isDark ? AppColors.recipeDarkBg : AppColors.recipeLightBg;
+  Color get _cardColor => _isDark ? AppColors.recipeDarkSurface : AppColors.recipeLightSurface;
+  Color get _textPrimary => _isDark ? AppColors.recipeDarkTextPrimary : AppColors.lightTextPrimary;
+  Color get _textSecondary => _isDark ? AppColors.recipeDarkTextSecondary : AppColors.lightTextSecondary;
+  Color get _borderColor => _isDark ? AppColors.recipeDarkBorder : AppColors.recipeLightBorder;
+  Color get _accentColor => _isDark ? AppColors.recipeAccentDark : AppColors.recipeAccent;
+  Color get _greenColor => _isDark ? AppColors.recipeGreenDark : AppColors.recipeGreen;
   
   List<BoxShadow> get _cardShadow => _isDark ? [] : [
     BoxShadow(
@@ -225,10 +227,10 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.15),
+                color: _greenColor.withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.timer_off, color: AppColors.success, size: 24),
+              child: Icon(Icons.timer_off, color: _greenColor, size: 24),
             ),
             const SizedBox(width: 12),
             Text(
@@ -250,7 +252,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
               setState(() => _activeTimerStep = null);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
+              backgroundColor: _accentColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -429,7 +431,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
                   child: CircularProgressIndicator(
                     value: (_currentStep + 1) / _totalSteps,
                     backgroundColor: _borderColor,
-                    valueColor: AlwaysStoppedAnimation(AppColors.accent),
+                    valueColor: AlwaysStoppedAnimation(_accentColor),
                     strokeWidth: 3,
                   ),
                 ),
@@ -452,24 +454,24 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.accent.withOpacity(0.1),
-            AppColors.accent.withOpacity(0.05),
+            _accentColor.withOpacity(0.1),
+            _accentColor.withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+        border: Border.all(color: _accentColor.withOpacity(0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.accent.withOpacity(0.15),
+              color: _accentColor.withOpacity(0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(
               _timerRunning ? Icons.timer : Icons.pause_circle_outline,
-              color: AppColors.accent,
+              color: _accentColor,
               size: 24,
             ),
           ),
@@ -479,7 +481,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: AppColors.accent,
+              color: _accentColor,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
@@ -490,12 +492,12 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.2),
+                color: _accentColor.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 _timerRunning ? Icons.pause : Icons.play_arrow,
-                color: AppColors.accent,
+                color: _accentColor,
               ),
             ),
           ),
@@ -538,14 +540,14 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.success.withOpacity(0.2),
-                    AppColors.success.withOpacity(0.1),
+                    _greenColor.withOpacity(0.2),
+                    _greenColor.withOpacity(0.1),
                   ],
                 ),
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.success.withOpacity(0.3), width: 2),
+                border: Border.all(color: _greenColor.withOpacity(0.3), width: 2),
               ),
-              child: Icon(Icons.restaurant_menu, color: AppColors.success, size: 36),
+              child: Icon(Icons.restaurant_menu, color: _greenColor, size: 36),
             ),
             const SizedBox(height: 20),
             
@@ -576,25 +578,25 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(_isDark ? 0.2 : 0.1),
+                  color: _accentColor.withOpacity(_isDark ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+                  border: Border.all(color: _accentColor.withOpacity(0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.people, size: 18, color: AppColors.accent),
+                    Icon(Icons.people, size: 18, color: _accentColor),
                     const SizedBox(width: 8),
                     Text(
                       servingsText,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.accent,
+                        color: _accentColor,
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Icon(Icons.edit, size: 14, color: AppColors.accent),
+                    Icon(Icons.edit, size: 14, color: _accentColor),
                   ],
                 ),
               ),
@@ -620,7 +622,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: _isDark ? const Color(0xFF252525) : const Color(0xFFF1F5F9),
+                        color: _isDark ? AppColors.recipeDarkInput : AppColors.lightInputFill,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: _borderColor),
                       ),
@@ -650,12 +652,12 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
                           color: isChecked 
-                              ? AppColors.success.withOpacity(_isDark ? 0.15 : 0.08)
+                              ? _greenColor.withOpacity(_isDark ? 0.15 : 0.08)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: isChecked 
-                                ? AppColors.success.withOpacity(0.4)
+                                ? _greenColor.withOpacity(0.4)
                                 : _borderColor,
                           ),
                         ),
@@ -666,10 +668,10 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
                               width: 22,
                               height: 22,
                               decoration: BoxDecoration(
-                                color: isChecked ? AppColors.success : Colors.transparent,
+                                color: isChecked ? _greenColor : Colors.transparent,
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                  color: isChecked ? AppColors.success : _textSecondary.withOpacity(0.4),
+                                  color: isChecked ? _greenColor : _textSecondary.withOpacity(0.4),
                                   width: 2,
                                 ),
                               ),
@@ -725,14 +727,14 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.accent,
-                    AppColors.accent.withOpacity(0.7),
+                    _accentColor,
+                    _accentColor.withOpacity(0.7),
                   ],
                 ),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.accent.withOpacity(0.3),
+                    color: _accentColor.withOpacity(0.3),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -781,19 +783,19 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () => _startTimer(timerMinutes),
-                  icon: Icon(Icons.timer, color: AppColors.accent),
+                  icon: Icon(Icons.timer, color: _accentColor),
                   label: Text(
                     _trParams('cooking_mode_start_timer', {'minutes': '$timerMinutes'}),
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.accent,
+                      color: _accentColor,
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    side: BorderSide(color: AppColors.accent, width: 2),
+                    side: BorderSide(color: _accentColor, width: 2),
                   ),
                 ),
               ),
@@ -871,7 +873,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> with TickerProvid
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isLastStep ? AppColors.success : AppColors.accent,
+                  backgroundColor: isLastStep ? _greenColor : _accentColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -961,6 +963,7 @@ class _ServingsSelectorSheet extends StatelessWidget {
             alignment: WrapAlignment.center,
             children: [1, 2, 3, 4, 5, 6, 8, 10, 12].map((servings) {
               final isSelected = servings == currentServings;
+              final accentColor = AppColors.recipeAccentColor(context);
               return GestureDetector(
                 onTap: () => onServingsChanged(servings),
                 child: Container(
@@ -968,11 +971,11 @@ class _ServingsSelectorSheet extends StatelessWidget {
                   height: 64,
                   decoration: BoxDecoration(
                     color: isSelected 
-                        ? AppColors.accent 
-                        : (isDark ? const Color(0xFF252525) : const Color(0xFFF1F5F9)),
+                        ? accentColor 
+                        : (isDark ? AppColors.recipeDarkInput : AppColors.lightInputFill),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isSelected ? AppColors.accent : borderColor,
+                      color: isSelected ? accentColor : borderColor,
                       width: isSelected ? 2 : 1,
                     ),
                   ),

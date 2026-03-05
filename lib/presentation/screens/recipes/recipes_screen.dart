@@ -281,7 +281,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = AppColors.background(context);
+    final backgroundColor = AppColors.recipeBg(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
     final savedState = ref.watch(savedRecipesProvider);
@@ -346,7 +346,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
             Container(
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.inputFill(context),
+                color: AppColors.recipeInput(context),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TextField(
@@ -405,9 +405,8 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
               margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.surface(context),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border(context)),
+                color: AppColors.recipeSurface(context),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -416,21 +415,19 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                     icon: Icons.restaurant_menu_rounded,
                     value: _totalRecipes.toString(),
                     label: context.tr('recipes'),
-                    iconColor: AppColors.accent,
+                    iconColor: AppColors.recipeAccentColor(context),
                   ),
-                  Container(width: 1, height: 30, color: AppColors.border(context).withOpacity(0.5)),
                   _StatItem(
                     icon: Icons.people_rounded,
                     value: _totalCreators.toString(),
                     label: context.tr('creators'),
-                    iconColor: AppColors.accent,
+                    iconColor: AppColors.recipeAccentColor(context),
                   ),
-                  Container(width: 1, height: 30, color: AppColors.border(context).withOpacity(0.5)),
                   _StatItem(
                     icon: Icons.bookmark_rounded,
                     value: savedState.savedIds.length.toString(),
                     label: context.tr('saved_recipes'),
-                    iconColor: AppColors.accent,
+                    iconColor: AppColors.recipeAccentColor(context),
                   ),
                 ],
               ),
@@ -443,7 +440,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
             context, 
             context.tr('recipe_of_the_day'), 
             Icons.auto_awesome_rounded,
-            iconColor: AppColors.accentColor(context),
+            iconColor: AppColors.recipeAccentColor(context),
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -468,7 +465,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                       child: _ActionCard(
                         icon: Icons.restaurant_rounded,
                         label: context.tr('my_recipes'),
-                        color: AppColors.accentColor(context),
+                        color: AppColors.recipeAccentColor(context),
                         onTap: () => context.push('/recipes/my'),
                       ),
                     ),
@@ -477,7 +474,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                       child: _ActionCard(
                         icon: Icons.bookmark_rounded,
                         label: context.tr('saved_recipes'),
-                        color: AppColors.accentColor(context),
+                        color: AppColors.recipeAccentColor(context),
                         badge: savedState.savedIds.isNotEmpty 
                             ? savedState.savedIds.length.toString() 
                             : null,
@@ -493,7 +490,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                       child: _ActionCard(
                         icon: Icons.edit_note_rounded,
                         label: context.tr('my_drafts'),
-                        color: AppColors.accentColor(context),
+                        color: AppColors.recipeAccentColor(context),
                         onTap: () => context.push('/recipes/drafts'),
                       ),
                     ),
@@ -502,7 +499,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                       child: _ActionCard(
                         icon: Icons.people_rounded,
                         label: context.tr('creators'),
-                        color: AppColors.accentColor(context),
+                        color: AppColors.recipeAccentColor(context),
                         onTap: () => context.push('/recipes/creators'),
                       ),
                     ),
@@ -567,7 +564,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
         ],
         
         // Categories Section
-        _buildSectionHeader(context, context.tr('browse_by_category'), Icons.category_rounded, iconColor: AppColors.accentColor(context)),
+        _buildSectionHeader(context, context.tr('browse_by_category'), Icons.category_rounded, iconColor: AppColors.recipeAccentColor(context)),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverGrid(
@@ -749,7 +746,6 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                         decoration: BoxDecoration(
                           color: cat.color.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: cat.color.withOpacity(0.3)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -797,7 +793,6 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                         decoration: BoxDecoration(
                           color: AppColors.success.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.success.withOpacity(0.3)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -838,7 +833,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                   ...matchingAuthors.take(3).map((author) => ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: CircleAvatar(
-                      backgroundColor: AppColors.inputFill(context),
+                      backgroundColor: AppColors.recipeInput(context),
                       child: Text(
                         (author['author_name'] as String? ?? 'U')[0].toUpperCase(),
                         style: TextStyle(color: textPrimary),
@@ -939,7 +934,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: iconColor ?? AppColors.freshGreen),
+            Icon(icon, size: 20, color: iconColor ?? AppColors.recipeGreenColor(context)),
             const SizedBox(width: 8),
             Text(
               title,
@@ -995,7 +990,7 @@ class _StatItem extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: iconColor ?? AppColors.freshGreen),
+            Icon(icon, size: 16, color: iconColor ?? AppColors.recipeGreenColor(context)),
             const SizedBox(width: 4),
             Text(
               value,
@@ -1059,11 +1054,11 @@ class _FeaturedRecipeCard extends ConsumerWidget {
                 width: double.infinity,
                 height: double.infinity,
                 placeholder: (_, __) => Container(
-                  color: AppColors.inputFill(context),
+                  color: AppColors.recipeInput(context),
                   child: const Center(child: CircularProgressIndicator()),
                 ),
                 errorWidget: (_, __, ___) => Container(
-                  color: AppColors.inputFill(context),
+                  color: AppColors.recipeInput(context),
                   child: const Icon(Icons.restaurant_rounded, size: 48),
                 ),
               ),
@@ -1091,7 +1086,7 @@ class _FeaturedRecipeCard extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.accent,
+                        color: AppColors.recipeAccentColor(context),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Row(
@@ -1145,7 +1140,7 @@ class _FeaturedRecipeCard extends ConsumerWidget {
                         ),
                         if (recipe.averageRating > 0) ...[
                           const SizedBox(width: 12),
-                          const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFCC00)),
+                          Icon(Icons.star_rounded, size: 14, color: AppColors.recipeStarColor(context)),
                           const SizedBox(width: 2),
                           Text(
                             recipe.averageRating.toStringAsFixed(1),
@@ -1216,13 +1211,8 @@ class _ActionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color.withOpacity(0.15), color.withOpacity(0.05)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.3)),
+          color: color.withOpacity(0.10),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           children: [
@@ -1278,7 +1268,7 @@ class _ActionCard extends StatelessWidget {
   }
 }
 
-// Category Card Widget - with count badge
+// Category Card Widget - clean, minimal design
 class _CategoryCard extends StatelessWidget {
   final RecipeCategory category;
   final int count;
@@ -1292,43 +1282,43 @@ class _CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textPrimary = AppColors.textPrimary(context);
-    final textSecondary = AppColors.textSecondary(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = AppColors.recipeTextPrimary(context);
+    final textSecondary = AppColors.recipeTextSecondary(context);
+    final surface = AppColors.recipeSurface(context);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [category.color.withOpacity(0.2), category.color.withOpacity(0.08)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+          color: surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: category.color.withOpacity(0.2)),
+          boxShadow: isDark ? null : [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: category.color.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Text(category.icon, style: const TextStyle(fontSize: 24)),
-            ),
+            Text(category.icon, style: const TextStyle(fontSize: 28)),
             const SizedBox(height: 6),
-            Text(
-              context.tr(category.nameKey),
-              style: TextStyle(
-                color: textPrimary,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                context.tr(category.nameKey),
+                style: TextStyle(
+                  color: textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             if (count > 0) ...[
               const SizedBox(height: 2),
@@ -1365,8 +1355,8 @@ class _CreatorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final cardColor = AppColors.surface(context);
-    final borderColor = AppColors.border(context);
+    final cardColor = AppColors.recipeSurface(context);
+    final borderColor = AppColors.recipeBorderColor(context);
 
     return GestureDetector(
       onTap: onTap,
@@ -1459,10 +1449,10 @@ class _HorizontalRecipeCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cardColor = AppColors.surface(context);
+    final cardColor = AppColors.recipeSurface(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final borderColor = AppColors.border(context);
+    final borderColor = AppColors.recipeBorderColor(context);
     final isSaved = ref.watch(isRecipeSavedProvider(recipe.id));
 
     return GestureDetector(
@@ -1490,12 +1480,12 @@ class _HorizontalRecipeCard extends ConsumerWidget {
                   fit: BoxFit.cover,
                   placeholder: (_, __) => Container(
                     height: 110,
-                    color: AppColors.inputFill(context),
+                    color: AppColors.recipeInput(context),
                     child: const Center(child: Icon(Icons.restaurant_rounded)),
                   ),
                   errorWidget: (_, __, ___) => Container(
                     height: 110,
-                    color: AppColors.inputFill(context),
+                    color: AppColors.recipeInput(context),
                     child: const Center(child: Icon(Icons.restaurant_rounded)),
                   ),
                 ),
@@ -1551,7 +1541,7 @@ class _HorizontalRecipeCard extends ConsumerWidget {
                         ),
                         if (recipe.averageRating > 0) ...[
                           const SizedBox(width: 6),
-                          const Icon(Icons.star_rounded, size: 12, color: Color(0xFFFFCC00)),
+                          Icon(Icons.star_rounded, size: 12, color: AppColors.recipeStarColor(context)),
                           const SizedBox(width: 2),
                           Text(
                             recipe.averageRating.toStringAsFixed(1),
@@ -1609,11 +1599,11 @@ class _RecipeCard extends ConsumerWidget {
       );
     }
     
-    final cardColor = AppColors.surface(context);
+    final cardColor = AppColors.recipeSurface(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final borderColor = AppColors.border(context);
-    final inputFill = AppColors.inputFill(context);
+    final borderColor = AppColors.recipeBorderColor(context);
+    final inputFill = AppColors.recipeInput(context);
     final isSaved = ref.watch(isRecipeSavedProvider(recipe.id));
     
     return Padding(
@@ -1787,7 +1777,7 @@ class _RecipeCard extends ConsumerWidget {
                           ),
                           if (recipe.averageRating > 0) ...[
                             const SizedBox(width: 10),
-                            const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFCC00)),
+                            Icon(Icons.star_rounded, size: 14, color: AppColors.recipeStarColor(context)),
                             const SizedBox(width: 3),
                             Text(
                               recipe.averageRating.toStringAsFixed(1),

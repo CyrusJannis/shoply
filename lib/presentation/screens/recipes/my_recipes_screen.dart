@@ -25,7 +25,7 @@ class MyRecipesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recipesAsync = ref.watch(myRecipesProvider);
-    final backgroundColor = AppColors.background(context);
+    final backgroundColor = AppColors.recipeBg(context);
     final textPrimary = AppColors.textPrimary(context);
     
     return Scaffold(
@@ -159,10 +159,10 @@ class _MyRecipeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = AppColors.surface(context);
+    final cardColor = AppColors.recipeSurface(context);
     final textPrimary = AppColors.textPrimary(context);
     final textSecondary = AppColors.textSecondary(context);
-    final borderColor = AppColors.border(context);
+    final borderColor = AppColors.recipeBorderColor(context);
 
     return GestureDetector(
       onTap: onTap,
@@ -186,13 +186,13 @@ class _MyRecipeCard extends StatelessWidget {
                 placeholder: (_, __) => Container(
                   width: 100,
                   height: 100,
-                  color: AppColors.inputFill(context),
+                  color: AppColors.recipeInput(context),
                   child: const Icon(Icons.restaurant_rounded),
                 ),
                 errorWidget: (_, __, ___) => Container(
                   width: 100,
                   height: 100,
-                  color: AppColors.inputFill(context),
+                  color: AppColors.recipeInput(context),
                   child: const Icon(Icons.restaurant_rounded),
                 ),
               ),
@@ -233,7 +233,7 @@ class _MyRecipeCard extends StatelessWidget {
                         ),
                         if (recipe.averageRating > 0) ...[
                           const SizedBox(width: 12),
-                          const Icon(Icons.star_rounded, size: 14, color: Color(0xFFFFCC00)),
+                          Icon(Icons.star_rounded, size: 14, color: AppColors.recipeStarColor(context)),
                           const SizedBox(width: 3),
                           Text(
                             recipe.averageRating.toStringAsFixed(1),
@@ -261,12 +261,12 @@ class _MyRecipeCard extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.1),
+                  color: AppColors.recipeAccentColor(context).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.edit_rounded,
-                  color: AppColors.accent,
+                  color: AppColors.recipeAccentColor(context),
                   size: 20,
                 ),
               ),

@@ -8,6 +8,7 @@ import 'package:shoply/data/models/recipe.dart';
 import 'package:shoply/data/models/recipe_draft.dart';
 import 'package:shoply/data/services/recipe_service.dart';
 import 'package:shoply/data/services/recipe_draft_service.dart';
+import 'package:shoply/core/constants/app_colors.dart';
 
 /// Multi-step recipe creation screen - 4 steps matching the design
 class MultiStepRecipeScreen extends StatefulWidget {
@@ -56,15 +57,15 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
   String _languageCode = 'de';
   bool _isDark = false;
   
-  // Colors based on theme (following cooking_mode_screen pattern)
-  Color get _bgColor => _isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF5F5F5);
-  Color get _cardColor => _isDark ? const Color(0xFF1A1A1A) : Colors.white;
-  Color get _textPrimary => _isDark ? Colors.white : const Color(0xFF1A1A2E);
-  Color get _textSecondary => _isDark ? const Color(0xFFA0A0A0) : const Color(0xFF8E8E93);
-  Color get _borderColor => _isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE5E5EA);
-  static const Color _accentBlue = Color(0xFF007AFF);
-  static const Color _accentGreen = Color(0xFF34C759);
-  static const Color _accentOrange = Color(0xFFFF9500);
+  // Colors based on theme — "Cookbook Evening" warm palette
+  Color get _bgColor => _isDark ? AppColors.recipeDarkBg : AppColors.recipeLightBg;
+  Color get _cardColor => _isDark ? AppColors.recipeDarkSurface : AppColors.recipeLightSurface;
+  Color get _textPrimary => _isDark ? AppColors.recipeDarkTextPrimary : AppColors.lightTextPrimary;
+  Color get _textSecondary => _isDark ? AppColors.recipeDarkTextSecondary : AppColors.lightTextSecondary;
+  Color get _borderColor => _isDark ? AppColors.recipeDarkBorder : AppColors.recipeLightBorder;
+  Color get _accentBlue => _isDark ? AppColors.recipeAccentDark : AppColors.recipeAccent;
+  Color get _accentGreen => _isDark ? AppColors.recipeGreenDark : AppColors.recipeGreen;
+  Color get _accentOrange => _isDark ? AppColors.recipeStepDark : AppColors.recipeStep;
   
   String _tr(String key) => AppTranslations.get(key, _languageCode);
 
@@ -385,7 +386,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                   child: CircularProgressIndicator(
                     value: (_currentStep + 1) / _totalSteps,
                     backgroundColor: _borderColor,
-                    valueColor: const AlwaysStoppedAnimation(_accentBlue),
+                    valueColor: AlwaysStoppedAnimation(_accentBlue),
                     strokeWidth: 3,
                   ),
                 ),
@@ -415,7 +416,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
               shape: BoxShape.circle,
               border: Border.all(color: _accentBlue.withValues(alpha: 0.2), width: 2),
             ),
-            child: const Icon(Icons.camera_alt_rounded, color: _accentBlue, size: 36),
+            child: Icon(Icons.camera_alt_rounded, color: _accentBlue, size: 36),
           ),
           const SizedBox(height: 16),
           
@@ -459,7 +460,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                             color: _accentBlue.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.add_photo_alternate, size: 28, color: _accentBlue),
+                          child: Icon(Icons.add_photo_alternate, size: 28, color: _accentBlue),
                         ),
                         const SizedBox(height: 12),
                         Text(
@@ -522,7 +523,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
               shape: BoxShape.circle,
               border: Border.all(color: _accentBlue.withValues(alpha: 0.2), width: 2),
             ),
-            child: const Icon(Icons.schedule_rounded, color: _accentBlue, size: 36),
+            child: Icon(Icons.schedule_rounded, color: _accentBlue, size: 36),
           ),
           const SizedBox(height: 16),
           
@@ -653,7 +654,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
               shape: BoxShape.circle,
               border: Border.all(color: _accentGreen.withValues(alpha: 0.2), width: 2),
             ),
-            child: const Icon(Icons.restaurant_rounded, color: _accentGreen, size: 36),
+            child: Icon(Icons.restaurant_rounded, color: _accentGreen, size: 36),
           ),
           const SizedBox(height: 16),
           
@@ -769,7 +770,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                       children: [
                         Text(
                           'Zutat hinzufügen',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: _accentGreen),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: _accentGreen),
                         ),
                       ],
                     ),
@@ -797,7 +798,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
               shape: BoxShape.circle,
               border: Border.all(color: _accentBlue.withValues(alpha: 0.2), width: 2),
             ),
-            child: const Icon(Icons.format_list_numbered_rounded, color: _accentBlue, size: 36),
+            child: Icon(Icons.format_list_numbered_rounded, color: _accentBlue, size: 36),
           ),
           const SizedBox(height: 16),
           
@@ -897,7 +898,7 @@ class _MultiStepRecipeScreenState extends State<MultiStepRecipeScreen> {
                       color: _accentBlue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
