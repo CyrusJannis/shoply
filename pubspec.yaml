@@ -2,7 +2,7 @@ name: shoply
 description: "A modern shopping list app with shared lists, coupon finder, and recipe suggestions."
 publish_to: 'none'
 
-version: 1.1.4+17
+version: 1.1.4+30
 
 environment:
   sdk: '>=3.9.2 <4.0.0'
