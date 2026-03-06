@@ -69,3 +69,21 @@ lib/firebase_options.dart
 # Environment files
 *.env
 *.env.*
+
+# Build artifacts & duplicates
+build.nosync/
+build 2/
+build 3/
+build 4/
+*.pbxproj.backup
+.windsurfrules
+
+# Duplicate flutter files
+.flutter-plugins-dependencies *
+ios/.symlinks 2/
+ios/Flutter/Flutter *.podspec
+ios/Flutter/Generated *.xcconfig
+ios/Flutter/flutter_export_environment *.sh
+ios/Podfile *.lock
+ios/Runner/Configuration.storekit
+build\ 4
