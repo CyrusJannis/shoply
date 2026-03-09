@@ -158,6 +158,97 @@ class AppColors {
         : recipeAccent;
   }
 
+  /// Recipe-specific theme colors (dark mode)
+  static const Color recipeDarkBg = Color(0xFF0A120A);
+  static const Color recipeDarkSurface = Color(0xFF1A261A);
+  static const Color recipeDarkInput = Color(0xFF2A362A);
+  static const Color recipeDarkBorder = Color(0xFF3A4A3A);
+
+  /// Recipe-specific theme colors (light mode)
+  static const Color recipeLightBg = Color(0xFFF5F9F5);
+  static const Color recipeLightSurface = Color(0xFFF0F5F0);
+  static const Color recipeLightBorder = Color(0xFFD8E8D8);
+
+  /// Recipe step number accent - warm orange
+  static const Color recipeStep = Color(0xFFFF7043);
+
+  /// Recipe star rating gold
+  static const Color recipeStarGold = Color(0xFFFFB300);
+
+  /// Recipe text colors
+  static const Color recipeDarkTextPrimary = Color(0xFFE8F0E8);
+  static const Color recipeDarkTextSecondary = Color(0xFFA0B0A0);
+  static const Color recipeLightTextPrimary = Color(0xFF1A2E1A);
+  static const Color recipeLightTextSecondary = Color(0xFF5A6E5A);
+
+  /// Recipe green accent (for buttons, highlights)
+  static const Color recipeGreen = Color(0xFF4CAF50);
+  static const Color recipeGreenDark = Color(0xFF66BB6A);
+  static const Color recipeStepDark = Color(0xFFFF8A65);
+
+  /// Get recipe text primary color based on theme
+  static Color recipeTextPrimary(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? recipeDarkTextPrimary
+        : recipeLightTextPrimary;
+  }
+
+  /// Get recipe text secondary color based on theme
+  static Color recipeTextSecondary(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? recipeDarkTextSecondary
+        : recipeLightTextSecondary;
+  }
+
+  /// Get recipe background color based on theme
+  static Color recipeBg(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? recipeDarkBg
+        : recipeLightBg;
+  }
+
+  /// Get recipe surface/card color based on theme
+  static Color recipeSurface(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? recipeDarkSurface
+        : recipeLightSurface;
+  }
+
+  /// Get recipe border color based on theme
+  static Color recipeBorderColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? recipeDarkBorder
+        : recipeLightBorder;
+  }
+
+  /// Get recipe input fill color based on theme
+  static Color recipeInput(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? recipeDarkInput
+        : lightInputFill;
+  }
+
+  /// Get recipe green color based on theme
+  static Color recipeGreenColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? recipeAccentDark
+        : recipeAccent;
+  }
+
+  /// Get recipe star color based on theme
+  static Color recipeStarColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFFFCA28)
+        : recipeStarGold;
+  }
+
+  /// Get recipe step color based on theme
+  static Color recipeStepColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFFF8A65)
+        : recipeStep;
+  }
+
   // ============================================
   // HELPER METHODS
   // ============================================

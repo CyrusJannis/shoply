@@ -61,11 +61,15 @@ void main() async {
     // Initialize Firebase with FlutterFire CLI generated options
     if (Platform.isIOS || Platform.isAndroid) {
       try {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-        await AnalyticsService.instance.initialize();
-        debugPrint('✅ Firebase Analytics initialized');
+        final opts = DefaultFirebaseOptions.currentPlatform;
+        // Skip Firebase init if using template placeholder values
+        if (opts.apiKey.startsWith('YOUR_')) {
+          debugPrint('⚠️ Firebase not configured (template values detected) — skipping');
+        } else {
+          await Firebase.initializeApp(options: opts);
+          await AnalyticsService.instance.initialize();
+          debugPrint('✅ Firebase Analytics initialized');
+        }
       } catch (e) {
         debugPrint('⚠️ Firebase not configured: $e');
         // Continue without Firebase Analytics

@@ -76,6 +76,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       // Lade Listen IMMER neu (auch bei null)
       Future.microtask(() {
         ref.read(listsNotifierProvider.notifier).loadLists();
+        // Also refresh shopping history
+        ref.invalidate(recentHistoryProvider);
       });
     }
   }
@@ -88,6 +90,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (_lastUserId != null) {
       Future.microtask(() {
         ref.read(listsNotifierProvider.notifier).loadLists();
+        // Also refresh shopping history
+        ref.invalidate(recentHistoryProvider);
       });
     }
   }
@@ -700,7 +704,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-/// Shopping history section matching the full page design - limited to 3 entries
+/// Shopping history section - minimalist design matching .windsurfrules
 class _ShoppingHistorySection extends ConsumerStatefulWidget {
   const _ShoppingHistorySection();
 
@@ -711,55 +715,52 @@ class _ShoppingHistorySection extends ConsumerStatefulWidget {
 class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection> {
   final Set<String> _expandedEntries = {};
 
-  String _formatDateTime(DateTime date, BuildContext context) {
-    final locale = Localizations.localeOf(context).languageCode;
+  /// Format date: Today, Yesterday, or d. MMM (e.g. 20. Nov)
+  String _formatDate(DateTime date, BuildContext context) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final entryDate = DateTime(date.year, date.month, date.day);
-    
-    final timeStr = DateFormat('HH:mm').format(date);
+    final locale = Localizations.localeOf(context).languageCode;
     
     if (entryDate == today) {
-      return '${context.tr('today')}, $timeStr';
+      return context.tr('today');
     } else if (entryDate == yesterday) {
-      return '${context.tr('yesterday')}, $timeStr';
-    } else if (now.difference(date).inDays < 7) {
-      final dayName = DateFormat('EEEE', locale).format(date);
-      return '$dayName, $timeStr';
+      return context.tr('yesterday');
     } else {
-      return DateFormat('EEE, d. MMM', locale).format(date);
+      return DateFormat('d. MMM', locale).format(date);
     }
   }
 
   Future<void> _addAllItemsToList(List<ShoppingHistoryItem> items, String listId, String listName) async {
-    try {
-      await Future.wait(
-        items.map((item) => ref.read(itemsNotifierProvider(listId).notifier).addItem(
-          name: item.name,
-          quantity: item.quantity,
-          unit: item.unit,
-          category: item.category,
-        )),
+    // Show success immediately for better UX
+    HapticFeedback.mediumImpact();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${items.length} ${context.tr('items_added_to')} $listName'),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       );
-      HapticFeedback.mediumImpact();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${items.length} ${context.tr('items_added_to')} $listName'),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${context.tr('error')}: $e')),
-        );
-      }
     }
+    
+    // Add items in background
+    Future.microtask(() async {
+      try {
+        await Future.wait(
+          items.map((item) => ref.read(itemsNotifierProvider(listId).notifier).addItem(
+            name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+            category: item.category,
+          )),
+        );
+      } catch (e) {
+        debugPrint('Background add failed: $e');
+      }
+    });
   }
 
   @override
@@ -767,6 +768,7 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
     final historyAsync = ref.watch(recentHistoryProvider);
     final listsAsync = ref.watch(listsNotifierProvider);
     final lists = listsAsync.hasValue ? listsAsync.value! : [];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -775,7 +777,7 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Header - minimalist
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: Row(
@@ -783,9 +785,11 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
               children: [
                 Text(
                   context.tr('shopping_history'),
-                  style: AppTextStyles.h2.copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 26,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                   ),
                 ),
                 GestureDetector(
@@ -799,10 +803,10 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
                   },
                   child: Text(
                     context.tr('see_all'),
-                    style: AppTextStyles.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: AppColors.textSecondary(context),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? const Color(0xFF6B6B6B) : const Color(0xFF9CA3AF),
                     ),
                   ),
                 ),
@@ -812,27 +816,41 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
 
           // Content
           historyAsync.when(
-            loading: () => const SizedBox(
-              height: 120,
-              child: Center(child: CircularProgressIndicator()),
+            loading: () => SizedBox(
+              height: 80,
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: isDark ? Colors.white38 : Colors.black26,
+                  strokeWidth: 2,
+                ),
+              ),
             ),
             error: (_, __) => Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.surface(context),
+                color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border(context)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.error_outline_rounded,
-                    color: AppColors.textTertiary(context),
+                    color: isDark ? const Color(0xFF6B6B6B) : const Color(0xFF9CA3AF),
+                    size: 20,
                   ),
                   const SizedBox(width: 12),
                   Text(
                     context.tr('loading_error'),
-                    style: TextStyle(color: AppColors.textSecondary(context)),
+                    style: TextStyle(
+                      color: isDark ? const Color(0xFF6B6B6B) : const Color(0xFF9CA3AF),
+                    ),
                   ),
                 ],
               ),
@@ -840,27 +858,35 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
             data: (history) {
               if (history.isEmpty) {
                 return Container(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.surface(context),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.border(context)),
+                    color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppColors.accentColor(context).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          color: isDark 
+                              ? Colors.white.withValues(alpha: 0.05) 
+                              : Colors.black.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
                           Icons.receipt_long_rounded,
-                          color: AppColors.accentColor(context),
-                          size: 24,
+                          color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
+                          size: 20,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -869,15 +895,15 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
                               context.tr('no_shopping_history'),
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary(context),
+                                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Text(
                               context.tr('completed_trips_appear_here'),
                               style: TextStyle(
                                 fontSize: 13,
-                                color: AppColors.textSecondary(context),
+                                color: isDark ? const Color(0xFF6B6B6B) : const Color(0xFF9CA3AF),
                               ),
                             ),
                           ],
@@ -888,11 +914,11 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
                 );
               }
 
-              // Vertical list matching full page design - limited to 3 entries
+              // Vertical list - limited to 3 entries
               final limitedHistory = history.take(3).toList();
               return Column(
                 children: limitedHistory.map((entry) => 
-                  _buildHistoryCard(entry, lists)
+                  _buildHistoryCard(entry, lists, isDark)
                 ).toList(),
               );
             },
@@ -902,30 +928,28 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
     );
   }
 
-  Widget _buildHistoryCard(ShoppingHistory entry, List<dynamic> lists) {
+  Widget _buildHistoryCard(ShoppingHistory entry, List<dynamic> lists, bool isDark) {
     final isExpanded = _expandedEntries.contains(entry.id);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOutCubic,
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isExpanded
-              ? AppColors.accentColor(context).withValues(alpha: 0.3)
-              : AppColors.border(context),
-          width: isExpanded ? 1.5 : 1,
-        ),
-        boxShadow: isExpanded
-            ? [
-                BoxShadow(
-                  color: AppColors.accentColor(context).withValues(alpha: 0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
+        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -941,81 +965,55 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
                 }
               });
             },
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  // Icon with gradient background
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.accentColor(context),
-                          AppColors.accentColor(context).withValues(alpha: 0.7),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.shopping_bag_rounded,
-                      color: Colors.white,
-                      size: 26,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  // Content
+                  // Content - no icon, just text
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // List name
                         Text(
                           entry.listName,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary(context),
+                            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                            letterSpacing: -0.3,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
+                        // Date and person - properly laid out to prevent cutoff
                         Row(
                           children: [
-                            Icon(
-                              Icons.schedule_rounded,
-                              size: 14,
-                              color: AppColors.textTertiary(context),
+                            // Date
+                            Text(
+                              _formatDate(entry.completedAt, context),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? const Color(0xFF6B6B6B) : const Color(0xFF9CA3AF),
+                              ),
                             ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                _formatDateTime(entry.completedAt, context),
+                            // Person name (if available)
+                            if (entry.completedByName != null) ...[
+                              Text(
+                                ' • ',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: AppColors.textSecondary(context),
+                                  color: isDark ? const Color(0xFF6B6B6B) : const Color(0xFF9CA3AF),
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            if (entry.completedByName != null) ...[
-                              const SizedBox(width: 8),
-                              Icon(
-                                Icons.person_outline_rounded,
-                                size: 14,
-                                color: AppColors.textTertiary(context),
-                              ),
-                              const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
                                   entry.completedByName!,
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: AppColors.textSecondary(context),
+                                    color: isDark ? const Color(0xFF6B6B6B) : const Color(0xFF9CA3AF),
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -1026,30 +1024,33 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  // Item count badge
+                  const SizedBox(width: 16),
+                  // Item count - minimal badge
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.accentColor(context).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
+                      color: isDark 
+                          ? Colors.white.withValues(alpha: 0.08) 
+                          : Colors.black.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '${entry.totalItems}',
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.accentColor(context),
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white70 : const Color(0xFF6B7280),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 8),
                   AnimatedRotation(
                     turns: isExpanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
                     child: Icon(
                       Icons.keyboard_arrow_down_rounded,
-                      color: AppColors.textTertiary(context),
+                      color: isDark ? const Color(0xFF6B6B6B) : const Color(0xFF9CA3AF),
+                      size: 20,
                     ),
                   ),
                 ],
@@ -1064,6 +1065,7 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
               entry: entry,
               lists: lists,
               onAddAllItems: _addAllItemsToList,
+              isDark: isDark,
             ),
             crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 200),
@@ -1074,16 +1076,18 @@ class _ShoppingHistorySectionState extends ConsumerState<_ShoppingHistorySection
   }
 }
 
-/// Expanded items content for homepage history cards
+/// Expanded items content for homepage history cards - minimalist design
 class _HomeExpandedItemsContent extends ConsumerStatefulWidget {
   final ShoppingHistory entry;
   final List<dynamic> lists;
   final Future<void> Function(List<ShoppingHistoryItem> items, String listId, String listName) onAddAllItems;
+  final bool isDark;
 
   const _HomeExpandedItemsContent({
     required this.entry,
     required this.lists,
     required this.onAddAllItems,
+    required this.isDark,
   });
 
   @override
@@ -1106,138 +1110,180 @@ class _HomeExpandedItemsContentState extends ConsumerState<_HomeExpandedItemsCon
   Future<void> _addSingleItem(ShoppingHistoryItem item) async {
     if (_selectedListId == null) return;
     
-    try {
-      await ref.read(itemsNotifierProvider(_selectedListId!).notifier).addItem(
-        name: item.name,
-        quantity: item.quantity,
-        unit: item.unit,
-        category: item.category,
-      );
-      HapticFeedback.lightImpact();
-      setState(() {
-        _addedItemIds.add(item.id);
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${context.tr('error')}: $e')),
+    // Show success immediately
+    HapticFeedback.lightImpact();
+    setState(() {
+      _addedItemIds.add(item.id);
+    });
+    
+    // Add in background
+    Future.microtask(() async {
+      try {
+        await ref.read(itemsNotifierProvider(_selectedListId!).notifier).addItem(
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          category: item.category,
         );
+      } catch (e) {
+        debugPrint('Background add failed: $e');
       }
-    }
+    });
   }
 
   Future<void> _addAllItems() async {
     if (_selectedListId == null) return;
     
-    setState(() => _isAddingAll = true);
+    setState(() {
+      _isAddingAll = true;
+      for (final item in widget.entry.items) {
+        _addedItemIds.add(item.id);
+      }
+    });
     
     final selectedList = widget.lists.firstWhere((l) => l.id == _selectedListId);
     await widget.onAddAllItems(widget.entry.items, _selectedListId!, selectedList.name);
     
     setState(() {
       _isAddingAll = false;
-      for (final item in widget.entry.items) {
-        _addedItemIds.add(item.id);
-      }
     });
+  }
+
+  Widget _buildListCard(dynamic list, bool isSelected) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() {
+          _selectedListId = list.id;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (widget.isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08))
+              : (widget.isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Icon(
+                  Icons.check_rounded,
+                  size: 16,
+                  color: widget.isDark ? Colors.white : const Color(0xFF1A1A1A),
+                ),
+              ),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 100),
+              child: Text(
+                list.name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: widget.isDark ? Colors.white : const Color(0xFF1A1A1A),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Divider(
-          color: AppColors.divider(context),
-          height: 1,
+        // Subtle divider
+        Container(
+          height: 0.5,
+          color: widget.isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.08),
         ),
         
-        // List selector and add all button
+        // Horizontal scroll list selector
         if (widget.lists.isNotEmpty && widget.entry.items.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // List selector dropdown
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface(context),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border(context)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedListId,
-                      isExpanded: true,
-                      icon: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: AppColors.textSecondary(context),
-                      ),
-                      dropdownColor: AppColors.surface(context),
-                      borderRadius: BorderRadius.circular(12),
-                      items: widget.lists.map((list) {
-                        return DropdownMenuItem<String>(
-                          value: list.id,
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.list_rounded,
-                                size: 18,
-                                color: AppColors.accentColor(context),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  list.name,
-                                  style: TextStyle(
-                                    color: AppColors.textPrimary(context),
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 14,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedListId = value;
-                        });
-                      },
-                    ),
+                Text(
+                  context.tr('add_to_list').toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: widget.isDark ? const Color(0xFF6B6B6B) : const Color(0xFF9CA3AF),
+                    letterSpacing: 0.8,
                   ),
                 ),
                 const SizedBox(height: 10),
-                // Add all button
+                // Horizontal scrolling list cards
                 SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _selectedListId == null || _isAddingAll
-                        ? null
-                        : _addAllItems,
-                    icon: _isAddingAll
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
+                  height: 48,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: widget.lists.length,
+                    itemBuilder: (context, index) {
+                      final list = widget.lists[index];
+                      final isSelected = list.id == _selectedListId;
+                      return _buildListCard(list, isSelected);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 14),
+                // Add all button - minimal style
+                GestureDetector(
+                  onTap: _selectedListId == null || _isAddingAll ? null : _addAllItems,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: _selectedListId == null 
+                          ? (widget.isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02))
+                          : (widget.isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (_isAddingAll)
+                          SizedBox(
+                            width: 16,
+                            height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                widget.isDark ? Colors.white70 : const Color(0xFF6B7280),
+                              ),
                             ),
                           )
-                        : const Icon(Icons.add_shopping_cart_rounded, size: 18),
-                    label: Text(
-                      '${context.tr('add_all')} (${widget.entry.items.length})',
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accentColor(context),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                        else
+                          Icon(
+                            Icons.add_rounded,
+                            size: 18,
+                            color: _selectedListId == null 
+                                ? (widget.isDark ? const Color(0xFF4B4B4B) : const Color(0xFFD1D5DB))
+                                : (widget.isDark ? Colors.white70 : const Color(0xFF6B7280)),
+                          ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${context.tr('add_all')} (${widget.entry.items.length})',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: _selectedListId == null 
+                                ? (widget.isDark ? const Color(0xFF4B4B4B) : const Color(0xFFD1D5DB))
+                                : (widget.isDark ? Colors.white70 : const Color(0xFF6B7280)),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1245,10 +1291,10 @@ class _HomeExpandedItemsContentState extends ConsumerState<_HomeExpandedItemsCon
             ),
           ),
         
-        // Items list with individual add buttons
+        // Items list
         if (widget.entry.items.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
             child: Column(
               children: widget.entry.items.take(10).map((item) {
                 final isAdded = _addedItemIds.contains(item.id);
@@ -1256,37 +1302,15 @@ class _HomeExpandedItemsContentState extends ConsumerState<_HomeExpandedItemsCon
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
                       color: isAdded 
-                          ? AppColors.success.withValues(alpha: 0.08)
-                          : AppColors.background(context),
+                          ? (widget.isDark ? const Color(0xFF1A2E1A) : const Color(0xFFF0FDF4))
+                          : (widget.isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02)),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isAdded 
-                            ? AppColors.success.withValues(alpha: 0.3)
-                            : AppColors.border(context),
-                      ),
                     ),
                     child: Row(
                       children: [
-                        // Item icon
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: isAdded
-                                ? AppColors.success.withValues(alpha: 0.15)
-                                : AppColors.accentColor(context).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            isAdded ? Icons.check_rounded : Icons.shopping_basket_outlined,
-                            size: 16,
-                            color: isAdded ? AppColors.success : AppColors.accentColor(context),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
                         // Item name and quantity
                         Expanded(
                           child: Column(
@@ -1297,7 +1321,7 @@ class _HomeExpandedItemsContentState extends ConsumerState<_HomeExpandedItemsCon
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: AppColors.textPrimary(context),
+                                  color: widget.isDark ? Colors.white : const Color(0xFF1A1A1A),
                                 ),
                               ),
                               if (item.quantity > 1 || item.unit != null)
@@ -1305,7 +1329,7 @@ class _HomeExpandedItemsContentState extends ConsumerState<_HomeExpandedItemsCon
                                   '${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)}${item.unit != null ? ' ${item.unit}' : ''}',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.textSecondary(context),
+                                    color: widget.isDark ? const Color(0xFF6B6B6B) : const Color(0xFF9CA3AF),
                                   ),
                                 ),
                             ],
@@ -1319,14 +1343,16 @@ class _HomeExpandedItemsContentState extends ConsumerState<_HomeExpandedItemsCon
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: isAdded
-                                    ? AppColors.success
-                                    : AppColors.accentColor(context),
+                                    ? const Color(0xFF22C55E)
+                                    : (widget.isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06)),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
                                 isAdded ? Icons.check_rounded : Icons.add_rounded,
-                                size: 18,
-                                color: Colors.white,
+                                size: 16,
+                                color: isAdded 
+                                    ? Colors.white 
+                                    : (widget.isDark ? Colors.white70 : const Color(0xFF6B7280)),
                               ),
                             ),
                           ),
@@ -1341,13 +1367,12 @@ class _HomeExpandedItemsContentState extends ConsumerState<_HomeExpandedItemsCon
         // Show more items indicator
         if (widget.entry.items.length > 10)
           Padding(
-            padding: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.only(bottom: 20),
             child: Text(
               '+${widget.entry.items.length - 10} ${context.tr('more_items')}',
               style: TextStyle(
-                fontSize: 13,
-                color: AppColors.textTertiary(context),
-                fontStyle: FontStyle.italic,
+                fontSize: 12,
+                color: widget.isDark ? const Color(0xFF6B6B6B) : const Color(0xFF9CA3AF),
               ),
             ),
           ),
@@ -1355,12 +1380,12 @@ class _HomeExpandedItemsContentState extends ConsumerState<_HomeExpandedItemsCon
         // Empty state
         if (widget.entry.items.isEmpty)
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Text(
               context.tr('no_items'),
               style: TextStyle(
-                color: AppColors.textSecondary(context),
-                fontStyle: FontStyle.italic,
+                fontSize: 13,
+                color: widget.isDark ? const Color(0xFF6B6B6B) : const Color(0xFF9CA3AF),
               ),
             ),
           ),
