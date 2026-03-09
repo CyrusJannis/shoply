@@ -87,3 +87,6 @@ ios/Flutter/flutter_export_environment *.sh
 ios/Podfile *.lock
 ios/Runner/Configuration.storekit
 build\ 4
+
+# Auto-commit logs
+scripts/*.log
